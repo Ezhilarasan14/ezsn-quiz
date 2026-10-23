@@ -125,7 +125,7 @@ ezsn-quiz/
 ```bash
 cargo run
 ```
-The server will start at `http://localhost:8080`.
+The server will start at `http://localhost:8081`.
 
 ### 2. Run Tests
 ```bash
@@ -152,7 +152,7 @@ Environment variables can be set directly or via a `.env` file:
 
 | Variable | Default | Description |
 |---|---|---|
-| `PORT` | `8080` | Port for the HTTP and WebSocket server |
+| `PORT` | `8081` | Port for the HTTP and WebSocket server |
 | `HOST` | `0.0.0.0` | Bind host address |
 | `DATABASE_URL` | `sqlite:quiz.db` | SQLite database connection string |
 | `RUST_LOG` | `info` | Logging verbosity (`info`, `debug`, `trace`) |
@@ -309,8 +309,8 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=builder /app/target/release/ezsn-quiz /app/ezsn-quiz
-EXPOSE 8080
-ENV PORT=8080
+EXPOSE 8081
+ENV PORT=8081
 ENV HOST=0.0.0.0
 CMD ["/app/ezsn-quiz"]
 ```
@@ -318,7 +318,7 @@ CMD ["/app/ezsn-quiz"]
 Build and run container:
 ```bash
 docker build -t ezsn-quiz .
-docker run -p 8080:8080 ezsn-quiz
+docker run -p 8081:8081 ezsn-quiz
 ```
 
 ---

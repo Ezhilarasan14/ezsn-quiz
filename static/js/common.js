@@ -107,7 +107,7 @@ class QuizWebSocket {
 
   send(type, payload = {}) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type, payload }));
+      this.ws.send(JSON.stringify({ type, payload: payload || {} }));
     } else {
       console.warn("Cannot send message: WebSocket is not open.");
     }

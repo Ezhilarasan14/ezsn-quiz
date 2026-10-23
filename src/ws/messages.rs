@@ -9,7 +9,7 @@ pub struct LobbyPlayer {
     pub is_connected: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", content = "payload", rename_all = "snake_case")]
 pub enum ClientMessage {
     HostConnect {
@@ -31,6 +31,78 @@ pub enum ClientMessage {
         option_id: String,
     },
     Ping,
+}
+
+impl<'de> Deserialize<'de> for ClientMessage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct RawMsg {
+            #[serde(rename = "type")]
+            msg_type: String,
+            #[serde(default)]
+            payload: serde_json::Value,
+        }
+
+        let raw = RawMsg::deserialize(deserializer)?;
+        match raw.msg_type.as_str() {
+            "host_connect" => {
+                #[derive(Deserialize)]
+                struct Payload {
+                    pin: String,
+                    token: String,
+                }
+                let p: Payload = serde_json::from_value(raw.payload).map_err(serde::de::Error::custom)?;
+                Ok(ClientMessage::HostConnect {
+                    pin: p.pin,
+                    token: p.token,
+                })
+            }
+            "player_connect" => {
+                #[derive(Deserialize)]
+                struct Payload {
+                    pin: String,
+                    nickname: String,
+                    player_id: Option<String>,
+                }
+                let p: Payload = serde_json::from_value(raw.payload).map_err(serde::de::Error::custom)?;
+                Ok(ClientMessage::PlayerConnect {
+                    pin: p.pin,
+                    nickname: p.nickname,
+                    player_id: p.player_id,
+                })
+            }
+            "host_start_game" => Ok(ClientMessage::HostStartGame),
+            "host_next_question" => Ok(ClientMessage::HostNextQuestion),
+            "host_kick_player" => {
+                #[derive(Deserialize)]
+                struct Payload {
+                    player_id: String,
+                }
+                let p: Payload = serde_json::from_value(raw.payload).map_err(serde::de::Error::custom)?;
+                Ok(ClientMessage::HostKickPlayer {
+                    player_id: p.player_id,
+                })
+            }
+            "player_submit_answer" => {
+                #[derive(Deserialize)]
+                struct Payload {
+                    #[serde(default)]
+                    question_id: String,
+                    option_id: String,
+                }
+                let p: Payload = serde_json::from_value(raw.payload).map_err(serde::de::Error::custom)?;
+                Ok(ClientMessage::PlayerSubmitAnswer {
+                    question_id: p.question_id,
+                    option_id: p.option_id,
+                })
+            }
+            "ping" => Ok(ClientMessage::Ping),
+            other => Err(serde::de::Error::custom(format!("Unknown client message type: {}", other))),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,4 +184,50 @@ pub enum ServerMessage {
         message: String,
     },
     Pong,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_host_start_game_with_map_payload() {
+        let json = r#"{"type":"host_start_game","payload":{}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(msg, ClientMessage::HostStartGame);
+    }
+
+    #[test]
+    fn test_deserialize_host_start_game_without_payload() {
+        let json = r#"{"type":"host_start_game"}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(msg, ClientMessage::HostStartGame);
+    }
+
+    #[test]
+    fn test_deserialize_host_next_question_with_payload() {
+        let json = r#"{"type":"host_next_question","payload":{}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(msg, ClientMessage::HostNextQuestion);
+    }
+
+    #[test]
+    fn test_deserialize_ping_with_payload() {
+        let json = r#"{"type":"ping","payload":{}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(msg, ClientMessage::Ping);
+    }
+
+    #[test]
+    fn test_deserialize_player_submit_answer() {
+        let json = r#"{"type":"player_submit_answer","payload":{"question_id":"q1","option_id":"opt1"}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            msg,
+            ClientMessage::PlayerSubmitAnswer {
+                question_id: "q1".to_string(),
+                option_id: "opt1".to_string(),
+            }
+        );
+    }
 }

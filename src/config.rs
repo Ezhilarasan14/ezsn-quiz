@@ -16,7 +16,7 @@ impl Config {
         let port = env::var("PORT")
             .ok()
             .and_then(|p| p.parse().ok())
-            .unwrap_or(8080);
+            .unwrap_or(8081);
         let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:quiz.db".to_string());
 
         let cleanup_interval_secs = env::var("CLEANUP_INTERVAL_SECS")

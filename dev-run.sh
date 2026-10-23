@@ -23,7 +23,7 @@ fi
 
 # Set default host and port if not specified
 HOST="${HOST:-0.0.0.0}"
-PORT="${PORT:-8080}"
+PORT="${PORT:-8081}"
 export HOST
 export PORT
 export CARGO_TARGET_DIR="./target"
