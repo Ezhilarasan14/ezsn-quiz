@@ -2,7 +2,7 @@ use actix_web::{http::header, HttpRequest, HttpResponse, Responder};
 use rust_embed::RustEmbed;
 
 #[derive(RustEmbed)]
-#[folder = "static/"]
+#[folder = "frontend/dist/"]
 pub struct Asset;
 
 pub async fn serve_static(req: HttpRequest) -> impl Responder {
