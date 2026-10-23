@@ -22,8 +22,8 @@ async fn main() -> std::io::Result<()> {
     let pool = match db::init_db(&config.database_url).await {
         Ok(p) => p,
         Err(e) => {
-            log::error!("CRITICAL: Failed to initialize SQLite database at '{}': {}", config.database_url, e);
-            eprintln!("CRITICAL: Failed to initialize SQLite database at '{}': {}", config.database_url, e);
+            log::error!("CRITICAL: Failed to initialize database at '{}': {}", config.database_url, e);
+            eprintln!("CRITICAL: Failed to initialize database at '{}': {}", config.database_url, e);
             std::process::exit(1);
         }
     };
