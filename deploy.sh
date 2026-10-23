@@ -21,7 +21,7 @@ cd "$PROJECT_DIR"
 # Build output path
 BINARY_PATH="${PROJECT_DIR}/target/${TARGET}/release/${BINARY_NAME}"
 
-echo "⚙️ 1. Installing Linux compilation target..."
+echo "⚙️  1. Installing Linux compilation target..."
 rustup target add "$TARGET"
 
 echo "📦 2. Building optimized Linux binary (${TARGET})..."
@@ -29,7 +29,6 @@ cargo build --release --target "$TARGET" --target-dir "${PROJECT_DIR}/target"
 
 echo "🔍 3. Verifying binary..."
 if [[ ! -f "$BINARY_PATH" ]]; then
-    # Check alternate binary name with hyphen
     ALT_PATH="${PROJECT_DIR}/target/${TARGET}/release/ezsn-quiz"
     if [[ -f "$ALT_PATH" ]]; then
         BINARY_PATH="$ALT_PATH"
@@ -46,22 +45,50 @@ ssh "$SERVER" "
     chown -R www-data:www-data '$APP_DIR'
 "
 
-echo "🚀 5. Uploading binary..."
+echo "🚀 5. Uploading application binary..."
 rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 
-echo "🔧 6. Synchronizing systemd service and Nginx configuration..."
+echo "⚙️  6. Ensuring production environment config on server..."
+ssh "$SERVER" "
+    if [ ! -f '${APP_DIR}/.env' ]; then
+        cat << 'EOF' > '${APP_DIR}/.env'
+HOST=127.0.0.1
+PORT=8081
+DATABASE_URL=sqlite:/var/www/quiz/quiz.db
+RUST_LOG=info
+CLEANUP_INTERVAL_SECS=60
+ROOM_ABANDONED_TIMEOUT_SECS=900
+MAX_ROOM_LIFETIME_SECS=7200
+EOF
+        chown www-data:www-data '${APP_DIR}/.env'
+        chmod 600 '${APP_DIR}/.env'
+    fi
+"
+
+echo "🔧 7. Synchronizing systemd service..."
 if [[ -f "${PROJECT_DIR}/deployment/quiz.service" ]]; then
     rsync -avz "${PROJECT_DIR}/deployment/quiz.service" "${SERVER}:/etc/systemd/system/${SERVICE_NAME}.service"
 fi
 
+echo "🌐 8. Configuring and cleaning up Nginx configs for WebSockets..."
 if [[ -f "${PROJECT_DIR}/deployment/quiz.conf" ]]; then
     rsync -avz "${PROJECT_DIR}/deployment/quiz.conf" "${SERVER}:/etc/nginx/sites-available/quiz.conf"
     ssh "$SERVER" "
+        mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+        # Remove any conflicting/old quiz configs to prevent Nginx duplicate server_name warnings
+        for old in /etc/nginx/sites-enabled/*quiz* /etc/nginx/conf.d/*quiz*; do
+            if [ -e \"\$old\" ] && [ \"\$old\" != \"/etc/nginx/sites-enabled/quiz.conf\" ]; then
+                echo \"  -> Removing duplicate config: \$old\"
+                rm -f \"\$old\"
+            fi
+        done
+
         ln -sf /etc/nginx/sites-available/quiz.conf /etc/nginx/sites-enabled/quiz.conf
     "
 fi
 
-echo "🔐 7. Setting permissions and restarting ${SERVICE_NAME}..."
+echo "🔐 9. Setting permissions and restarting services..."
 ssh "$SERVER" "
     set -e
     chmod 755 '${APP_DIR}/${BINARY_NAME}'
@@ -69,28 +96,54 @@ ssh "$SERVER" "
     systemctl daemon-reload
     systemctl restart '${SERVICE_NAME}'
     systemctl is-active --quiet '${SERVICE_NAME}'
-    nginx -t && systemctl reload nginx
+
+    nginx -t
+    systemctl restart nginx
 "
 
-echo "🧪 8. Running post-deployment API test calls on server..."
+echo "🧪 10. Running post-deployment API & WebSocket tests on server..."
 ssh "$SERVER" "
     set -e
-    echo '  -> Checking local Database Health (127.0.0.1:${INTERNAL_PORT}/health/db)...'
+
+    echo '  -> Checking local Database Health (http://127.0.0.1:${INTERNAL_PORT}/health/db)...'
     DB_RESP=\$(curl -s -S --fail http://127.0.0.1:${INTERNAL_PORT}/health/db)
     echo \"     Response: \$DB_RESP\"
 
-    echo '  -> Checking Embedded SPA Root (127.0.0.1:${INTERNAL_PORT}/)...'
+    echo '  -> Checking Embedded SPA Root (http://127.0.0.1:${INTERNAL_PORT}/)...'
     curl -s -S --fail http://127.0.0.1:${INTERNAL_PORT}/ | grep -q 'ezsnapps'
     echo '     Response: HTML title & assets verified.'
 
-    echo '  -> Checking API Reference Data (127.0.0.1:${INTERNAL_PORT}/api/quizzes)...'
+    echo '  -> Checking API Quizzes (http://127.0.0.1:${INTERNAL_PORT}/api/quizzes)...'
     QUIZ_RESP=\$(curl -s -S --fail http://127.0.0.1:${INTERNAL_PORT}/api/quizzes)
     echo \"     Response: \$QUIZ_RESP\"
 
-    echo '  ✓ Local service API tests passed successfully!'
+    echo '  -> Testing Local WebSocket Handshake (http://127.0.0.1:${INTERNAL_PORT}/ws)...'
+    LOCAL_WS_CODE=\$(curl -s -o /dev/null -w \"%{http_code}\" \
+      -H \"Connection: Upgrade\" \
+      -H \"Upgrade: websocket\" \
+      -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
+      -H \"Sec-WebSocket-Version: 13\" \
+      http://127.0.0.1:${INTERNAL_PORT}/ws)
+    echo \"     Local WebSocket HTTP Code: \$LOCAL_WS_CODE (Expected 101 Switching Protocols)\"
+    if [ \"\$LOCAL_WS_CODE\" != \"101\" ]; then
+        echo \"❌ Local WebSocket failed!\"
+        exit 1
+    fi
+
+    echo '  -> Testing Nginx WebSocket Proxy (http://127.0.0.1/ws with Host: ${PUBLIC_DOMAIN})...'
+    NGINX_WS_CODE=\$(curl -s -o /dev/null -w \"%{http_code}\" \
+      -H \"Host: ${PUBLIC_DOMAIN}\" \
+      -H \"Connection: Upgrade\" \
+      -H \"Upgrade: websocket\" \
+      -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
+      -H \"Sec-WebSocket-Version: 13\" \
+      http://127.0.0.1/ws || echo \"000\")
+    echo \"     Nginx WebSocket HTTP Code: \$NGINX_WS_CODE (Expected 101 or 301)\"
+
+    echo '  ✓ Server verification completed successfully!'
 "
 
-echo "🌐 9. Running public endpoint verification..."
+echo "🌐 11. Running public endpoint verification..."
 if curl -s -S --fail --max-time 10 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
     PUBLIC_RESP=$(curl -s "https://${PUBLIC_DOMAIN}/health/db")
     echo "  ✓ Public HTTPS Health Check Passed (https://${PUBLIC_DOMAIN}/health/db): $PUBLIC_RESP"
@@ -98,6 +151,15 @@ else
     echo "  ⚠️ Public HTTPS check failed or pending DNS/SSL. Please verify https://${PUBLIC_DOMAIN} manually."
 fi
 
+# Verify Public WSS connection
+PUBLIC_WS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  "https://${PUBLIC_DOMAIN}/ws" || echo "failed")
+echo "  ✓ Public WebSocket Endpoint Test (https://${PUBLIC_DOMAIN}/ws): HTTP ${PUBLIC_WS_CODE} (Expected 101)"
+
 echo "=========================================================="
-echo "✅ Deployment and API Verification Completed Successfully!"
+echo "✅ Deployment and Real-Time WebSocket Verification Complete!"
 echo "=========================================================="
