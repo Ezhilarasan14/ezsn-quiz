@@ -56,9 +56,27 @@ export const useGameStore = defineStore('game', () => {
   let timerInterval: number | null = null;
 
   // Initialize WebSocket handlers
+  let wasConnected = false;
   function initWebSocket() {
     wsClient.onStatus((connected) => {
       isConnected.value = connected;
+      if (connected && wasConnected) {
+        // Automatic re-handshake on reconnection
+        if (role.value === 'player' && roomPin.value && nickname.value) {
+          wsClient.send({
+            type: 'player_connect',
+            payload: { pin: roomPin.value, nickname: nickname.value, player_id: playerId.value || undefined },
+          });
+        } else if (role.value === 'host' && roomPin.value && hostToken.value) {
+          wsClient.send({
+            type: 'host_connect',
+            payload: { pin: roomPin.value, token: hostToken.value },
+          });
+        }
+      }
+      if (connected) {
+        wasConnected = true;
+      }
     });
 
     wsClient.onMessage((msg: ServerMessage) => {

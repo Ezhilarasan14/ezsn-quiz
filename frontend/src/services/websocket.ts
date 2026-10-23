@@ -8,6 +8,7 @@ export class WebSocketClient {
   private url: string;
   private messageHandlers: Set<MessageHandler> = new Set();
   private statusHandlers: Set<StatusHandler> = new Set();
+  private pendingQueue: ClientMessage[] = [];
   private reconnectTimer: number | null = null;
   private pingInterval: number | null = null;
   private isExplicitlyClosed = false;
@@ -36,6 +37,7 @@ export class WebSocketClient {
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
         this.notifyStatus(true);
+        this.flushPendingQueue();
         this.startHeartbeat();
       };
 
@@ -66,8 +68,23 @@ export class WebSocketClient {
   }
 
   public send(msg: ClientMessage): boolean {
+    if (this.isConnected()) {
+      return this.sendImmediate(msg);
+    }
+
+    // Queue message until socket is open
+    this.pendingQueue.push(msg);
+
+    // If socket is not connecting, initiate connection
+    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+      this.connect();
+    }
+
+    return true;
+  }
+
+  private sendImmediate(msg: ClientMessage): boolean {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('[WS] Cannot send message, socket is not open:', msg);
       return false;
     }
 
@@ -77,6 +94,15 @@ export class WebSocketClient {
     } catch (e) {
       console.error('[WS] Send failed:', e);
       return false;
+    }
+  }
+
+  private flushPendingQueue(): void {
+    while (this.pendingQueue.length > 0 && this.isConnected()) {
+      const msg = this.pendingQueue.shift();
+      if (msg) {
+        this.sendImmediate(msg);
+      }
     }
   }
 
@@ -97,6 +123,7 @@ export class WebSocketClient {
 
   public disconnect(): void {
     this.isExplicitlyClosed = true;
+    this.pendingQueue = [];
     this.cleanup();
     if (this.ws) {
       this.ws.close();
@@ -124,7 +151,7 @@ export class WebSocketClient {
     if (this.pingInterval !== null) clearInterval(this.pingInterval);
     this.pingInterval = window.setInterval(() => {
       if (this.isConnected()) {
-        this.send({ type: 'ping' });
+        this.sendImmediate({ type: 'ping' });
       }
     }, 20000);
   }
