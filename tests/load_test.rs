@@ -8,7 +8,9 @@ use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn test_high_concurrency_100_players() {
-    let pool = db::init_db("sqlite::memory:").await.expect("Failed to init in-memory db");
+    let db_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+    let pool = db::init_db(&db_url).await.expect("Failed to init postgres db");
     let manager = Arc::new(RoomManager::new(pool.clone()));
 
     // Create a 3-question quiz

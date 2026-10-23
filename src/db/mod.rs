@@ -7,25 +7,17 @@ pub use games::*;
 pub use organizations::*;
 pub use quizzes::*;
 
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
-use sqlx::{Pool, Sqlite};
-use std::str::FromStr;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres};
 use std::time::Duration;
 
-pub type DbPool = Pool<Sqlite>;
+pub type DbPool = Pool<Postgres>;
 
 pub async fn init_db(database_url: &str) -> Result<DbPool, sqlx::Error> {
-    let connection_options = SqliteConnectOptions::from_str(database_url)?
-        .create_if_missing(true)
-        .journal_mode(SqliteJournalMode::Wal)
-        .synchronous(SqliteSynchronous::Normal)
-        .busy_timeout(Duration::from_secs(15))
-        .foreign_keys(true);
-
-    let pool = SqlitePoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(10)
         .acquire_timeout(Duration::from_secs(15))
-        .connect_with(connection_options)
+        .connect(database_url)
         .await?;
 
     // Run migrations
@@ -34,6 +26,6 @@ pub async fn init_db(database_url: &str) -> Result<DbPool, sqlx::Error> {
         .await
         .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
 
-    log::info!("Database initialized and migrations applied successfully.");
+    log::info!("PostgreSQL database initialized and migrations applied successfully.");
     Ok(pool)
 }

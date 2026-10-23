@@ -12,8 +12,9 @@ CREATE TABLE IF NOT EXISTS organizations (
 );
 
 -- Seed default organization
-INSERT OR IGNORE INTO organizations (id, name, logo_url, primary_color, secondary_color, background_color, button_color)
-VALUES ('org_default', 'EZSN Quiz Platform', '', '#6366f1', '#ec4899', '#0f172a', '#3b82f6');
+INSERT INTO organizations (id, name, logo_url, primary_color, secondary_color, background_color, button_color)
+VALUES ('org_default', 'EZSN Quiz Platform', '', '#6366f1', '#ec4899', '#0f172a', '#3b82f6')
+ON CONFLICT (id) DO NOTHING;
 
 -- Admins table
 CREATE TABLE IF NOT EXISTS admins (
@@ -38,11 +39,11 @@ CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(token);
 CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at);
 
 -- Add branding and organization columns to quizzes
-ALTER TABLE quizzes ADD COLUMN organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL;
-ALTER TABLE quizzes ADD COLUMN theme_logo_url TEXT;
-ALTER TABLE quizzes ADD COLUMN theme_primary_color TEXT;
-ALTER TABLE quizzes ADD COLUMN theme_secondary_color TEXT;
-ALTER TABLE quizzes ADD COLUMN theme_bg_color TEXT;
-ALTER TABLE quizzes ADD COLUMN theme_btn_color TEXT;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS theme_logo_url TEXT;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS theme_primary_color TEXT;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS theme_secondary_color TEXT;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS theme_bg_color TEXT;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS theme_btn_color TEXT;
 
 UPDATE quizzes SET organization_id = 'org_default' WHERE organization_id IS NULL;

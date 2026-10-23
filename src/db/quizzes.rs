@@ -36,7 +36,7 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
         r#"
         SELECT id, title, description, organization_id, theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, created_at, updated_at
         FROM quizzes
-        WHERE id = ?
+        WHERE id = $1
         "#,
     )
     .bind(quiz_id)
@@ -64,7 +64,7 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
         r#"
         SELECT id, quiz_id, question_text, time_limit_sec, points, order_index
         FROM questions
-        WHERE quiz_id = ?
+        WHERE quiz_id = $1
         ORDER BY order_index ASC
         "#,
     )
@@ -78,7 +78,7 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
             r#"
             SELECT id, question_id, option_text, is_correct, order_index
             FROM options
-            WHERE question_id = ?
+            WHERE question_id = $1
             ORDER BY order_index ASC
             "#,
         )
@@ -124,7 +124,7 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
             theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, 
             created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         "#,
     )
     .bind(&quiz_id)
@@ -148,7 +148,7 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
         sqlx::query(
             r#"
             INSERT INTO questions (id, quiz_id, question_text, time_limit_sec, points, order_index)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
         )
         .bind(&question_id)
@@ -166,7 +166,7 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
             sqlx::query(
                 r#"
                 INSERT INTO options (id, question_id, option_text, is_correct, order_index)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5)
                 "#,
             )
             .bind(&opt_id)
@@ -189,10 +189,10 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
     let res = sqlx::query(
         r#"
         UPDATE quizzes
-        SET title = ?, description = ?, organization_id = ?, 
-            theme_logo_url = ?, theme_primary_color = ?, theme_secondary_color = ?, theme_bg_color = ?, theme_btn_color = ?,
+        SET title = $1, description = $2, organization_id = $3, 
+            theme_logo_url = $4, theme_primary_color = $5, theme_secondary_color = $6, theme_bg_color = $7, theme_btn_color = $8,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        WHERE id = $9
         "#,
     )
     .bind(&req.title)
@@ -211,7 +211,7 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
         return Ok(false);
     }
 
-    sqlx::query("DELETE FROM questions WHERE quiz_id = ?")
+    sqlx::query("DELETE FROM questions WHERE quiz_id = $1")
         .bind(quiz_id)
         .execute(&mut *tx)
         .await?;
@@ -225,7 +225,7 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
         sqlx::query(
             r#"
             INSERT INTO questions (id, quiz_id, question_text, time_limit_sec, points, order_index)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
         )
         .bind(&question_id)
@@ -243,7 +243,7 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
             sqlx::query(
                 r#"
                 INSERT INTO options (id, question_id, option_text, is_correct, order_index)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5)
                 "#,
             )
             .bind(&opt_id)
@@ -261,7 +261,7 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
 }
 
 pub async fn delete_quiz(pool: &DbPool, quiz_id: &str) -> Result<bool, sqlx::Error> {
-    let res = sqlx::query("DELETE FROM quizzes WHERE id = ?")
+    let res = sqlx::query("DELETE FROM quizzes WHERE id = $1")
         .bind(quiz_id)
         .execute(pool)
         .await?;

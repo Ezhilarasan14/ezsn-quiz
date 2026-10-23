@@ -37,7 +37,7 @@ pub async fn create_session(pool: &DbPool, admin_id: &str) -> Result<String, sql
     sqlx::query(
         r#"
         INSERT INTO admin_sessions (token, admin_id, expires_at, created_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
         "#,
     )
     .bind(&token)
@@ -55,7 +55,7 @@ pub async fn validate_session(pool: &DbPool, token: &str) -> Result<Option<Admin
         SELECT a.id, a.organization_id, a.username
         FROM admin_sessions s
         JOIN admins a ON s.admin_id = a.id
-        WHERE s.token = ? AND s.expires_at > CURRENT_TIMESTAMP
+        WHERE s.token = $1 AND s.expires_at > CURRENT_TIMESTAMP
         "#,
     )
     .bind(token)
@@ -66,7 +66,7 @@ pub async fn validate_session(pool: &DbPool, token: &str) -> Result<Option<Admin
 }
 
 pub async fn delete_session(pool: &DbPool, token: &str) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM admin_sessions WHERE token = ?")
+    sqlx::query("DELETE FROM admin_sessions WHERE token = $1")
         .bind(token)
         .execute(pool)
         .await?;
@@ -85,7 +85,7 @@ pub async fn ensure_default_admin(pool: &DbPool) -> Result<(), sqlx::Error> {
         sqlx::query(
             r#"
             INSERT INTO admins (id, organization_id, username, password_hash, salt, created_at, updated_at)
-            VALUES (?, 'org_default', 'admin', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES ($1, 'org_default', 'admin', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             "#,
         )
         .bind(&admin_id)

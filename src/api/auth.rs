@@ -26,7 +26,7 @@ pub async fn login(pool: web::Data<DbPool>, req: web::Json<LoginRequest>) -> imp
         r#"
         SELECT id, organization_id, username, password_hash, salt
         FROM admins
-        WHERE username = ?
+        WHERE username = $1
         "#,
     )
     .bind(&req.username)

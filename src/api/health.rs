@@ -14,7 +14,7 @@ pub async fn health_db(pool: web::Data<DbPool>) -> impl Responder {
         Ok(_) => HttpResponse::Ok().json(serde_json::json!({
             "status": "healthy",
             "database": "connected",
-            "type": "sqlite"
+            "type": "postgres"
         })),
         Err(e) => {
             log::error!("Database health check failed: {}", e);

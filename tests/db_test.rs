@@ -1,20 +1,12 @@
 use ezsn_quiz::db::{self, models::*, FinalPlayerResult};
-use std::str::FromStr;
 
 #[tokio::test]
 async fn test_database_crud_and_history() {
-    // Use an in-memory SQLite database for isolated testing
-    let pool = db::init_db("sqlite::memory:")
+    let db_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+    let pool = db::init_db(&db_url)
         .await
-        .expect("Failed to init in-memory db");
-
-    // Test path parsing
-    let opt1 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:quiz.db");
-    assert!(opt1.is_ok());
-    let opt2 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:/var/www/quiz/quiz.db");
-    assert!(opt2.is_ok());
-    let opt3 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:///var/www/quiz/quiz.db");
-    assert!(opt3.is_ok());
+        .expect("Failed to init postgres db");
 
     // 1. Initial seed should have 2 default quizzes
     let initial_quizzes = db::list_quizzes(&pool).await.expect("Failed to list quizzes");

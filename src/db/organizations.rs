@@ -19,8 +19,9 @@ pub async fn get_default_organization(pool: &DbPool) -> Result<Organization, sql
         // Fallback: create default if missing
         sqlx::query(
             r#"
-            INSERT OR IGNORE INTO organizations (id, name, logo_url, primary_color, secondary_color, background_color, button_color)
+            INSERT INTO organizations (id, name, logo_url, primary_color, secondary_color, background_color, button_color)
             VALUES ('org_default', 'EZSN Quiz Platform', '', '#6366f1', '#ec4899', '#0f172a', '#3b82f6')
+            ON CONFLICT (id) DO NOTHING
             "#,
         )
         .execute(pool)
@@ -53,8 +54,8 @@ pub async fn update_organization(
     sqlx::query(
         r#"
         UPDATE organizations
-        SET name = ?, logo_url = ?, primary_color = ?, secondary_color = ?, background_color = ?, button_color = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        SET name = $1, logo_url = $2, primary_color = $3, secondary_color = $4, background_color = $5, button_color = $6, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $7
         "#,
     )
     .bind(&req.name)
@@ -71,7 +72,7 @@ pub async fn update_organization(
         r#"
         SELECT id, name, logo_url, primary_color, secondary_color, background_color, button_color, created_at, updated_at
         FROM organizations
-        WHERE id = ?
+        WHERE id = $1
         "#,
     )
     .bind(org_id)

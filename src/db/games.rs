@@ -22,7 +22,7 @@ pub async fn create_game_record(
     sqlx::query(
         r#"
         INSERT INTO games (id, quiz_id, room_pin, host_token, status, created_at)
-        VALUES (?, ?, ?, ?, 'lobby', CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, 'lobby', CURRENT_TIMESTAMP)
         "#,
     )
     .bind(game_id)
@@ -45,8 +45,8 @@ pub async fn update_game_status(
         sqlx::query(
             r#"
             UPDATE games
-            SET status = ?, total_players = ?, ended_at = CURRENT_TIMESTAMP
-            WHERE id = ?
+            SET status = $1, total_players = $2, ended_at = CURRENT_TIMESTAMP
+            WHERE id = $3
             "#,
         )
         .bind(status)
@@ -58,8 +58,8 @@ pub async fn update_game_status(
         sqlx::query(
             r#"
             UPDATE games
-            SET status = ?, total_players = ?
-            WHERE id = ?
+            SET status = $1, total_players = $2
+            WHERE id = $3
             "#,
         )
         .bind(status)
@@ -84,7 +84,7 @@ pub async fn save_game_results(
         sqlx::query(
             r#"
             INSERT INTO game_player_results (id, game_id, player_id, nickname, total_score, final_rank, correct_count, total_answered)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
         )
         .bind(&result_id)
@@ -134,7 +134,7 @@ pub async fn get_game_results(pool: &DbPool, game_id: &str) -> Result<Vec<GamePl
         r#"
         SELECT id, game_id, player_id, nickname, total_score, final_rank, correct_count, total_answered
         FROM game_player_results
-        WHERE game_id = ?
+        WHERE game_id = $1
         ORDER BY final_rank ASC
         "#,
     )

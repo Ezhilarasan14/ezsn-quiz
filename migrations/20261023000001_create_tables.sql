@@ -1,4 +1,4 @@
--- Create tables for quizzes, questions, options, games, and results
+-- PostgreSQL Schema for quizzes, questions, options, games, and results
 
 CREATE TABLE IF NOT EXISTS quizzes (
     id TEXT PRIMARY KEY,
@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS questions (
     id TEXT PRIMARY KEY,
     quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
-    time_limit_sec INTEGER NOT NULL DEFAULT 20,
-    points INTEGER NOT NULL DEFAULT 1000,
-    order_index INTEGER NOT NULL DEFAULT 0,
+    time_limit_sec BIGINT NOT NULL DEFAULT 20,
+    points BIGINT NOT NULL DEFAULT 1000,
+    order_index BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS options (
     id TEXT PRIMARY KEY,
     question_id TEXT NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
     option_text TEXT NOT NULL,
-    is_correct BOOLEAN NOT NULL DEFAULT 0,
-    order_index INTEGER NOT NULL DEFAULT 0
+    is_correct BOOLEAN NOT NULL DEFAULT false,
+    order_index BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_options_question_id ON options(question_id);
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS games (
     room_pin TEXT NOT NULL,
     host_token TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'lobby', -- 'lobby', 'in_progress', 'completed', 'abandoned'
-    total_players INTEGER NOT NULL DEFAULT 0,
+    total_players BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP
 );
@@ -49,10 +49,10 @@ CREATE TABLE IF NOT EXISTS game_player_results (
     game_id TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     player_id TEXT NOT NULL,
     nickname TEXT NOT NULL,
-    total_score INTEGER NOT NULL DEFAULT 0,
-    final_rank INTEGER NOT NULL DEFAULT 1,
-    correct_count INTEGER NOT NULL DEFAULT 0,
-    total_answered INTEGER NOT NULL DEFAULT 0,
+    total_score BIGINT NOT NULL DEFAULT 0,
+    final_rank BIGINT NOT NULL DEFAULT 1,
+    correct_count BIGINT NOT NULL DEFAULT 0,
+    total_answered BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS game_answers (
     player_id TEXT NOT NULL,
     option_id TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL,
-    points_awarded INTEGER NOT NULL DEFAULT 0,
-    response_time_ms INTEGER NOT NULL DEFAULT 0,
+    points_awarded BIGINT NOT NULL DEFAULT 0,
+    response_time_ms BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
