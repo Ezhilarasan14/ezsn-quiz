@@ -64,15 +64,17 @@ systemctl kill -s SIGKILL "$SERVICE_NAME" 2>/dev/null || true
 pkill -9 -x "$BINARY_NAME" 2>/dev/null || true
 systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
 
-# If quiz.db is empty (0 bytes) or has orphaned lock files, clean it up
-if [ -f "${APP_DIR}/quiz.db" ] && [ ! -s "${APP_DIR}/quiz.db" ]; then
-    echo "  -> Cleaning up 0-byte database and stale lock files..."
+# If quiz.db is missing or 0 bytes, clean up any orphaned lock/shm/wal files
+if [ ! -s "${APP_DIR}/quiz.db" ]; then
+    echo "  -> Cleaning up 0-byte or orphaned database files..."
     rm -f "${APP_DIR}/quiz.db"*
 fi
 
 echo "  -> Setting permissions on ${APP_DIR}..."
 chmod 755 "${APP_DIR}/${BINARY_NAME}"
 chown -R www-data:www-data "$APP_DIR"
+
+systemctl daemon-reload
 
 echo "  -> Starting ${SERVICE_NAME}..."
 if ! systemctl start "$SERVICE_NAME"; then
