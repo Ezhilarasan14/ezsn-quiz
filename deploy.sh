@@ -31,6 +31,7 @@ fi
 
 BINARY_PATH="${PROJECT_DIR}/target/${TARGET}/release/${BINARY_NAME}"
 
+# Step 0: Compile Vue 3 + PrimeVue frontend into frontend/dist/
 if [[ -d "${PROJECT_DIR}/frontend" && -f "${PROJECT_DIR}/frontend/package.json" ]]; then
     echo "⚡ 0. Building Vue 3 + PrimeVue frontend bundle..."
     (cd "${PROJECT_DIR}/frontend" && npm run build)
@@ -69,16 +70,28 @@ systemctl kill -s SIGKILL "$SERVICE_NAME" 2>/dev/null || true
 pkill -9 -x "$BINARY_NAME" 2>/dev/null || true
 systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
 
-# If quiz.db is missing or 0 bytes, clean up any orphaned lock/shm/wal files
-if [ ! -s "${APP_DIR}/quiz.db" ]; then
-    echo "  -> Cleaning up 0-byte or orphaned database files..."
-    rm -f "${APP_DIR}/quiz.db"*
+# Ensure production .env exists and is configured for PostgreSQL
+if [ ! -f "${APP_DIR}/.env" ]; then
+    echo "  -> Creating initial ${APP_DIR}/.env with PostgreSQL..."
+    cat << 'ENVEOF' > "${APP_DIR}/.env"
+HOST=127.0.0.1
+PORT=8081
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz
+RUST_LOG=info
+CLEANUP_INTERVAL_SECS=60
+ROOM_ABANDONED_TIMEOUT_SECS=900
+MAX_ROOM_LIFETIME_SECS=7200
+ENVEOF
+elif grep -q "sqlite:" "${APP_DIR}/.env" 2>/dev/null; then
+    echo "  -> Upgrading ${APP_DIR}/.env from SQLite to PostgreSQL..."
+    sed -i 's|DATABASE_URL=sqlite:.*|DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz|g' "${APP_DIR}/.env"
 fi
 
 echo "  -> Setting permissions on ${APP_DIR}..."
 mkdir -p "${APP_DIR}/uploads"
 chmod 755 "${APP_DIR}/${BINARY_NAME}"
 chown -R www-data:www-data "$APP_DIR"
+chmod 640 "${APP_DIR}/.env" 2>/dev/null || true
 
 systemctl daemon-reload
 
@@ -86,7 +99,7 @@ echo "  -> Starting ${SERVICE_NAME}..."
 if ! systemctl start "$SERVICE_NAME"; then
     echo "❌ systemctl start failed! Service status and logs:"
     systemctl status "$SERVICE_NAME" --no-pager || true
-    journalctl -u "$SERVICE_NAME" -n 35 --no-pager || true
+    journalctl -u "$SERVICE_NAME" -n 40 --no-pager || true
     exit 1
 fi
 
@@ -102,7 +115,7 @@ done
 
 if [ -z "$HEALTH" ]; then
     echo "❌ ${SERVICE_NAME} failed to respond on port ${INTERNAL_PORT}! Recent logs:"
-    journalctl -u "$SERVICE_NAME" -n 40 --no-pager
+    journalctl -u "$SERVICE_NAME" -n 50 --no-pager
     exit 1
 fi
 
