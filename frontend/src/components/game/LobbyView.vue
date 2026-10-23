@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game';
+import { useBrandingStore, MAIN_BRAND_LOGO } from '@/stores/branding';
 import { ref } from 'vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 
 const gameStore = useGameStore();
+const brandingStore = useBrandingStore();
 const copied = ref(false);
 
 function copyPin() {
@@ -15,7 +17,35 @@ function copyPin() {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto space-y-8 py-6 px-4">
+  <div class="max-w-4xl mx-auto space-y-6 py-6 px-4">
+    <!-- Organization Header Banner (Shown while quiz starts) -->
+    <div
+      v-if="brandingStore.currentTheme.logo_url || brandingStore.currentTheme.org_name"
+      class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md"
+    >
+      <div class="flex items-center space-x-3.5">
+        <img
+          v-if="brandingStore.currentTheme.logo_url"
+          :src="brandingStore.currentTheme.logo_url"
+          alt="Organization Logo"
+          class="h-11 w-auto max-w-[160px] object-contain rounded-xl p-1 bg-slate-950/80 border border-white/10 shadow"
+        />
+        <div>
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block">Hosted by</span>
+          <h2 class="text-lg sm:text-xl font-black text-white leading-tight">
+            {{ brandingStore.currentTheme.org_name }}
+          </h2>
+        </div>
+      </div>
+
+      <!-- Main Platform Badge -->
+      <div class="flex items-center space-x-2 text-xs text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-800">
+        <span class="text-[11px] font-semibold text-slate-500">Platform:</span>
+        <img :src="MAIN_BRAND_LOGO" alt="EZSN Quiz" class="h-4 w-auto inline" />
+        <span class="font-bold text-slate-300">EZSN Quiz</span>
+      </div>
+    </div>
+
     <!-- Big PIN Display Card -->
     <Card class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl text-center">
       <template #content>

@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { useBrandingStore } from '@/stores/branding';
+import { computed, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { useBrandingStore, MAIN_BRAND_LOGO } from '@/stores/branding';
 import { useAuthStore } from '@/stores/auth';
 import { soundService } from '@/services/audio';
-import { ref } from 'vue';
 import Button from 'primevue/button';
 
+const route = useRoute();
 const brandingStore = useBrandingStore();
 const authStore = useAuthStore();
 const isMuted = ref(false);
+
+const isGameRoute = computed(() => route.path === '/play' || route.path === '/host');
 
 function toggleSound() {
   isMuted.value = soundService.toggleMute();
@@ -17,24 +21,36 @@ function toggleSound() {
 <template>
   <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <!-- Logo & Organization Name -->
+      <!-- Main Brand Logo (Always Permanent: EZSN) -->
       <router-link to="/" class="flex items-center space-x-3 group">
+        <img
+          :src="MAIN_BRAND_LOGO"
+          alt="EZSN Quiz Platform Logo"
+          class="h-8 sm:h-9 w-auto object-contain filter drop-shadow group-hover:scale-105 transition-transform"
+        />
+        <span class="text-xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors">
+          EZSN Quiz
+        </span>
+      </router-link>
+
+      <!-- Center: Organization Branding (Visible during active quiz sessions) -->
+      <div
+        v-if="isGameRoute && (brandingStore.currentTheme.logo_url || brandingStore.currentTheme.org_name)"
+        class="hidden sm:flex items-center space-x-2.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 shadow-sm"
+      >
         <img
           v-if="brandingStore.currentTheme.logo_url"
           :src="brandingStore.currentTheme.logo_url"
           alt="Organization Logo"
-          class="h-9 w-auto max-w-[140px] object-contain rounded"
+          class="h-5 w-auto max-w-[90px] object-contain rounded"
         />
-        <div
-          v-else
-          class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20"
-        >
-          EZ
+        <div class="flex items-center space-x-1.5 text-xs">
+          <span class="text-[10px] font-extrabold uppercase text-indigo-400">Host:</span>
+          <span class="font-bold text-white truncate max-w-[140px]">
+            {{ brandingStore.currentTheme.org_name }}
+          </span>
         </div>
-        <span class="text-xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors">
-          {{ brandingStore.currentTheme.org_name || 'EZSN Quiz' }}
-        </span>
-      </router-link>
+      </div>
 
       <!-- Right Navigation Actions -->
       <div class="flex items-center space-x-2 sm:space-x-4">

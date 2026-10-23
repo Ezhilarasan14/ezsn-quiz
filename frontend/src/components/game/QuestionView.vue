@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game';
+import { useBrandingStore } from '@/stores/branding';
 import CountdownBar from '@/components/common/CountdownBar.vue';
 import Card from 'primevue/card';
 
 const gameStore = useGameStore();
+const brandingStore = useBrandingStore();
 
 const optionStyles = [
   { bg: 'bg-rose-600', icon: '▲', border: 'border-rose-500/30' },
@@ -15,12 +17,20 @@ const optionStyles = [
 
 <template>
   <div class="max-w-5xl mx-auto space-y-6 py-4 px-4">
-    <!-- Header with progress & live answer count -->
+    <!-- Header with progress, Organization Logo, & live answer count -->
     <div class="flex items-center justify-between text-slate-300">
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-3">
         <span class="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 font-extrabold text-sm border border-indigo-500/30">
           Question {{ (gameStore.questionIndex || 0) + 1 }} of {{ gameStore.totalQuestions || 1 }}
         </span>
+
+        <!-- Organization Logo Badge during Question -->
+        <img
+          v-if="brandingStore.currentTheme.logo_url"
+          :src="brandingStore.currentTheme.logo_url"
+          alt="Organization Logo"
+          class="h-6 w-auto max-w-[100px] object-contain rounded opacity-90 hidden sm:inline"
+        />
       </div>
 
       <div class="flex items-center space-x-2 bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-800 text-sm font-semibold">

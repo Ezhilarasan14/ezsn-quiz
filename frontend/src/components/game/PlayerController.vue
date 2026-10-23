@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game';
+import { useBrandingStore } from '@/stores/branding';
 import CountdownBar from '@/components/common/CountdownBar.vue';
 import Message from 'primevue/message';
 
 const gameStore = useGameStore();
+const brandingStore = useBrandingStore();
 
 const optionStyles = [
   { bg: 'bg-rose-600 hover:bg-rose-500 active:scale-95', icon: '▲' },
@@ -21,11 +23,19 @@ function selectOption(id: string) {
 
 <template>
   <div class="max-w-md mx-auto space-y-5 py-4 px-4 h-full flex flex-col justify-between">
-    <!-- Top Status -->
+    <!-- Top Status & Organization Logo -->
     <div class="space-y-3">
       <div class="flex items-center justify-between text-xs font-bold text-slate-400">
-        <span>Q {{ (gameStore.questionIndex || 0) + 1 }} / {{ gameStore.totalQuestions || 1 }}</span>
-        <span>Score: {{ gameStore.score }}</span>
+        <div class="flex items-center space-x-2">
+          <span>Q {{ (gameStore.questionIndex || 0) + 1 }} / {{ gameStore.totalQuestions || 1 }}</span>
+          <img
+            v-if="brandingStore.currentTheme.logo_url"
+            :src="brandingStore.currentTheme.logo_url"
+            alt="Org Logo"
+            class="h-4 w-auto max-w-[60px] object-contain rounded opacity-80"
+          />
+        </div>
+        <span class="text-indigo-400">Score: {{ gameStore.score }}</span>
       </div>
 
       <CountdownBar

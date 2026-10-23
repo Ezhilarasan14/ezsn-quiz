@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useBrandingStore } from '@/stores/branding';
+import { MAIN_BRAND_LOGO } from '@/stores/branding';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 
 const router = useRouter();
-const brandingStore = useBrandingStore();
 
 const pin = ref('');
 const nickname = ref('');
@@ -42,15 +41,23 @@ function handleJoin() {
     <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl pointer-events-none" />
 
     <div class="w-full max-w-md z-10 space-y-8">
-      <!-- Title & Branding -->
+      <!-- Permanent Main Brand Logo & Title on Home Page -->
       <div class="text-center space-y-3">
-        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">
+        <div class="flex justify-center mb-3">
+          <img
+            :src="MAIN_BRAND_LOGO"
+            alt="EZSN Quiz Main Logo"
+            class="h-16 sm:h-20 w-auto object-contain filter drop-shadow-2xl hover:scale-105 transition-transform"
+          />
+        </div>
+
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
           <i class="pi pi-bolt" />
           <span>Real-time Multiplayer</span>
         </div>
 
         <h1 class="text-4xl sm:text-5xl font-black text-white tracking-tight">
-          {{ brandingStore.currentTheme.org_name || 'EZSN Quiz' }}
+          EZSN Quiz
         </h1>
         <p class="text-slate-400 text-sm font-medium">
           Enter your Game PIN and nickname to jump into the competition!

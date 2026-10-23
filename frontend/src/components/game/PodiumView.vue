@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useGameStore } from '@/stores/game';
+import { useBrandingStore, MAIN_BRAND_LOGO } from '@/stores/branding';
 import confetti from 'canvas-confetti';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 
 const gameStore = useGameStore();
+const brandingStore = useBrandingStore();
 
 onMounted(() => {
   // Confetti burst
@@ -40,13 +42,24 @@ function getPedestal(rank: number) {
 
 <template>
   <div class="max-w-4xl mx-auto space-y-10 py-8 px-4 text-center">
-    <!-- Header Title -->
-    <div class="space-y-2">
-      <span class="text-xs uppercase tracking-widest text-indigo-400 font-extrabold">Final Standings</span>
+    <!-- Organization Logo & Header Title -->
+    <div class="space-y-3">
+      <div v-if="brandingStore.currentTheme.logo_url" class="flex justify-center">
+        <img
+          :src="brandingStore.currentTheme.logo_url"
+          alt="Organization Logo"
+          class="h-14 w-auto max-w-[200px] object-contain rounded-2xl p-1.5 bg-slate-900/80 border border-white/10 shadow-xl"
+        />
+      </div>
+
+      <span class="text-xs uppercase tracking-widest text-indigo-400 font-extrabold block">
+        {{ brandingStore.currentTheme.org_name ? `${brandingStore.currentTheme.org_name} • Final Results` : 'Final Standings' }}
+      </span>
+
       <h1 class="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-indigo-400">
         Quiz Champions!
       </h1>
-      <p class="text-slate-400 text-sm">Congratulations to the top performers!</p>
+      <p class="text-slate-400 text-sm">Congratulations to all participants for a great game!</p>
     </div>
 
     <!-- Top 3 Podium Visual -->
@@ -144,17 +157,26 @@ function getPedestal(rank: number) {
       </template>
     </Card>
 
-    <!-- Return button -->
-    <div class="pt-4">
-      <router-link to="/">
-        <Button
-          label="Play Again / Return Home"
-          icon="pi pi-home"
-          size="large"
-          class="bg-indigo-600 hover:bg-indigo-500 border-none font-bold text-white px-8 py-3 rounded-xl shadow-lg shadow-indigo-600/20"
-          @click="gameStore.disconnect"
-        />
-      </router-link>
+    <!-- Return button & Main Platform Brand Badge -->
+    <div class="pt-4 space-y-4">
+      <div>
+        <router-link to="/">
+          <Button
+            label="Play Again / Return Home"
+            icon="pi pi-home"
+            size="large"
+            class="bg-indigo-600 hover:bg-indigo-500 border-none font-bold text-white px-8 py-3 rounded-xl shadow-lg shadow-indigo-600/20"
+            @click="gameStore.disconnect"
+          />
+        </router-link>
+      </div>
+
+      <!-- Main Platform Logo Footer -->
+      <div class="flex items-center justify-center space-x-2 text-xs text-slate-500 pt-2">
+        <span>Powered by</span>
+        <img :src="MAIN_BRAND_LOGO" alt="EZSN Quiz" class="h-4 w-auto inline" />
+        <span class="font-bold text-slate-400">EZSN Quiz</span>
+      </div>
     </div>
   </div>
 </template>

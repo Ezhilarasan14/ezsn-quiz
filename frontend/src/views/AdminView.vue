@@ -290,7 +290,10 @@ function handleOrgLogoUpload(event: Event) {
         <!-- Settings Form -->
         <Card class="bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl">
           <template #title>
-            <h3 class="text-lg font-bold text-white">Brand Appearance</h3>
+            <div class="space-y-1">
+              <h3 class="text-lg font-bold text-white">Organization Quiz Branding</h3>
+              <p class="text-xs text-slate-400">Customize the identity displayed when players join and participate in live quizzes.</p>
+            </div>
           </template>
           <template #content>
             <form @submit.prevent="saveOrgBranding" class="space-y-5">
@@ -298,19 +301,39 @@ function handleOrgLogoUpload(event: Event) {
                 Organization branding saved and applied!
               </Message>
 
-              <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-400">Organization Name</label>
-                <InputText v-model="orgForm.name" class="w-full bg-slate-950/60 border-slate-800 font-bold" />
+              <!-- Platform Brand Notice -->
+              <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <img src="https://ezsnapps.in/landing_page/logo.png" alt="EZSN Platform Brand" class="h-8 w-auto object-contain" />
+                  <div>
+                    <span class="text-xs font-bold text-white block">Main Platform Logo</span>
+                    <span class="text-[11px] text-slate-400">Permanently displayed on homepage and main navigation</span>
+                  </div>
+                </div>
+                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400">Fixed</span>
               </div>
 
               <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-400">Logo Upload</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  @change="handleOrgLogoUpload"
-                  class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer block"
-                />
+                <label class="text-xs font-bold text-slate-400">Organization / Host Name</label>
+                <InputText v-model="orgForm.name" placeholder="e.g. Acme Academy" class="w-full bg-slate-950/60 border-slate-800 font-bold" />
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-400">Organization Logo (Displayed During Live Quizzes)</label>
+                <div class="flex items-center space-x-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleOrgLogoUpload"
+                    class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer block"
+                  />
+                  <img
+                    v-if="orgForm.logo_url"
+                    :src="orgForm.logo_url"
+                    alt="Current Logo"
+                    class="h-8 w-auto max-w-[80px] object-contain rounded p-0.5 bg-slate-950 border border-slate-800"
+                  />
+                </div>
               </div>
 
               <div class="grid grid-cols-2 gap-4">

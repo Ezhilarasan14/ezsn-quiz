@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { api } from '@/services/api';
 import type { OrganizationConfig, ThemeConfig } from '@/types/quiz';
 
+export const MAIN_BRAND_LOGO = 'https://ezsnapps.in/landing_page/logo.png';
+export const MAIN_BRAND_NAME = 'EZSN Quiz';
+
 const DEFAULT_BRANDING: ThemeConfig = {
   org_name: 'EZSN Quiz',
   logo_url: null,
@@ -80,6 +83,8 @@ export const useBrandingStore = defineStore('branding', () => {
   }
 
   return {
+    MAIN_BRAND_LOGO,
+    MAIN_BRAND_NAME,
     currentTheme,
     orgConfig,
     isLoading,
