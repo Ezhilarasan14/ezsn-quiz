@@ -1,129 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="author" content="ezsnapps">
-  <title>ezsnapps Quiz - Real-Time Multiplayer Quiz Platform</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen flex flex-col justify-between">
-  <!-- Header / Navigation -->
-  <header class="w-full px-6 py-5 flex items-center justify-between border-b border-white/10 bg-black/20 backdrop-blur-md">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-red-500 flex items-center justify-center font-black text-2xl shadow-lg overflow-hidden">
-        <img src="" alt="Logo" class="brand-logo-img w-full h-full object-contain hidden">
-        <span class="brand-logo-default">⚡</span>
-      </div>
-      <div>
-        <h1 class="text-2xl font-black tracking-tight text-white brand-org-name">EZSN Quiz</h1>
-        <p class="text-xs text-white/60 font-medium">Rust-Powered Real-Time Multiplayer</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-3">
-      <button id="btn-sound-toggle" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition text-sm flex items-center gap-2">
-        <span id="sound-icon">🔊</span>
-      </button>
-      <a href="/edit" class="btn-secondary text-sm py-2 px-4">Quiz Creator</a>
-      <a href="/history" class="btn-secondary text-sm py-2 px-4">Past Results</a>
-      <a href="/admin" class="btn-primary text-sm py-2 px-4 flex items-center gap-1.5 shadow-lg shadow-indigo-500/20">
-        <span>⚙️</span> <span>Admin</span>
-      </a>
-    </div>
-  </header>
-
-  <!-- Main Content Hero -->
-  <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-12 flex flex-col items-center justify-center">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-      
-      <!-- Player Join Card -->
-      <div class="glass-panel p-8 flex flex-col justify-between animate-slide-up">
-        <div>
-          <div class="flex items-center gap-3 mb-6">
-            <span class="text-3xl">🎮</span>
-            <div>
-              <h2 class="text-2xl font-black text-white">Join a Game</h2>
-              <p class="text-white/70 text-sm">Enter the 6-digit PIN from the host's screen</p>
-            </div>
-          </div>
-
-          <form id="join-form" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">Game PIN</label>
-              <input 
-                type="text" 
-                id="join-pin" 
-                maxlength="6" 
-                placeholder="e.g. 849201" 
-                class="glass-input text-center text-3xl tracking-widest font-black uppercase"
-                required
-                autocomplete="off"
-              >
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">Your Nickname</label>
-              <input 
-                type="text" 
-                id="join-nickname" 
-                maxlength="20" 
-                placeholder="Choose a cool nickname" 
-                class="glass-input text-lg"
-                required
-                autocomplete="off"
-              >
-            </div>
-
-            <button type="submit" id="btn-join" class="btn-primary w-full py-4 text-xl font-black mt-2 flex items-center justify-center gap-2">
-              <span>Enter Game</span>
-              <span>🚀</span>
-            </button>
-          </form>
-        </div>
-
-        <div class="mt-6 pt-4 border-t border-white/10 text-center text-xs text-white/50">
-          No sign up required. Play directly from any phone, tablet, or browser!
-        </div>
-      </div>
-
-      <!-- Host a Game Card -->
-      <div class="glass-panel p-8 flex flex-col justify-between animate-slide-up" style="animation-delay: 0.1s;">
-        <div>
-          <div class="flex items-center gap-3 mb-6">
-            <span class="text-3xl">📺</span>
-            <div>
-              <h2 class="text-2xl font-black text-white">Host a Quiz</h2>
-              <p class="text-white/70 text-sm">Launch a live multiplayer room on the big screen</p>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <label class="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">Select a Quiz to Host</label>
-            <div id="quiz-list" class="space-y-3 max-h-64 overflow-y-auto pr-1">
-              <div class="text-center py-6 text-white/50 text-sm">Loading available quizzes...</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
-          <span class="text-xs text-white/60">Want to create your own questions?</span>
-          <a href="/edit" class="text-xs font-bold text-amber-400 hover:text-amber-300 underline">Create New Quiz &rarr;</a>
-        </div>
-      </div>
-
-    </div>
-  </main>
-
-  <!-- Footer -->
-  <footer class="w-full text-center py-4 text-xs text-white/40 border-t border-white/5">
-    Built with Rust, Actix Web, SQLite, and WebSockets &bull; High-Performance Multiplayer Platform
-  </footer>
-
-  <script src="/js/audio.js"></script>
-  <script src="/js/confetti.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/branding.js"></script>
-  <script src="/js/home.js"></script>
-</body>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EZSN Quiz - Interactive Multiplayer Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-CP9cM_fr.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-B5NKRYvv.js">
+    <link rel="modulepreload" crossorigin href="/assets/primevue-CDNg6Nfn.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-HlR0if6p.css">
+  </head>
+  <body class="bg-slate-950 text-white min-h-screen selection:bg-indigo-500 selection:text-white">
+    <div id="app"></div>
+  </body>
 </html>

@@ -31,6 +31,11 @@ fi
 
 BINARY_PATH="${PROJECT_DIR}/target/${TARGET}/release/${BINARY_NAME}"
 
+if [[ -d "${PROJECT_DIR}/frontend" && -f "${PROJECT_DIR}/frontend/package.json" ]]; then
+    echo "⚡ 0. Building Vue 3 + PrimeVue frontend bundle..."
+    (cd "${PROJECT_DIR}/frontend" && npm run build)
+fi
+
 echo "📦 1. Building optimized Linux binary (${TARGET})..."
 cargo build --release --target "$TARGET" --target-dir "${PROJECT_DIR}/target"
 
