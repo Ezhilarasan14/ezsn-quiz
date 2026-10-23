@@ -1,95 +1,82 @@
 <script setup lang="ts">
-import Card from 'primevue/card';
-import Button from 'primevue/button';
-import ProgressBar from 'primevue/progressbar';
-
 defineProps<{
   theme: {
     org_name?: string;
     logo_url?: string | null;
     primary_color: string;
-    secondary_color: string;
-    background_color: string;
-    button_color: string;
+    secondary_color?: string;
+    background_color?: string;
+    button_color?: string;
   };
 }>();
 </script>
 
 <template>
-  <div class="rounded-2xl p-6 border border-slate-700/60 shadow-xl transition-all duration-300"
-       :style="{ backgroundColor: theme.background_color }">
-    <!-- Header simulation -->
-    <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
-      <div class="flex items-center space-x-3">
+  <div class="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F19] shadow-2xl">
+    <!-- Navbar Live Preview -->
+    <div
+      class="px-4 py-3 border-b border-white/10 flex items-center justify-between transition-colors duration-200"
+      :style="{ backgroundColor: theme.primary_color || '#0F172A' }"
+    >
+      <!-- Left Brand -->
+      <div class="flex items-center space-x-2">
+        <span class="text-sm font-black tracking-tight text-white">ezsnapps</span>
+      </div>
+
+      <!-- Center Org Badge -->
+      <div class="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-black/40 border border-white/15">
         <img
           v-if="theme.logo_url"
           :src="theme.logo_url"
-          alt="Preview Logo"
-          class="h-7 w-auto object-contain rounded"
+          alt="Org Logo"
+          class="h-4 w-auto max-w-[60px] object-contain rounded"
         />
-        <div
-          v-else
-          class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white"
-          :style="{ backgroundColor: theme.primary_color }"
-        >
-          EZ
+        <div v-else class="w-3.5 h-3.5 rounded bg-indigo-500 flex items-center justify-center text-[9px] font-bold text-white">
+          ★
         </div>
-        <span class="font-bold text-sm tracking-tight text-white">
-          {{ theme.org_name || 'Organization' }}
+        <span class="text-xs font-bold text-white truncate max-w-[120px]">
+          {{ theme.org_name || 'Organization Name' }}
         </span>
       </div>
 
-      <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/80">
-        PIN: 482910
-      </span>
+      <!-- Right Action Dummy Buttons -->
+      <div class="flex items-center space-x-2">
+        <span class="text-[11px] font-semibold text-white/80 px-2 py-0.5 rounded bg-white/10">Join</span>
+        <span class="text-[11px] font-bold text-white px-2.5 py-0.5 rounded bg-indigo-600">Admin</span>
+      </div>
     </div>
 
-    <!-- Question simulation card -->
-    <Card class="bg-white/5 border border-white/10 backdrop-blur-md rounded-xl shadow-md text-white mb-6">
-      <template #content>
-        <div class="space-y-4">
-          <div class="flex justify-between items-center text-xs text-white/70">
-            <span>Question 3 of 10</span>
-            <span class="font-mono font-bold" :style="{ color: theme.secondary_color }">15s</span>
-          </div>
+    <!-- Page Body (Always Clean High-Contrast Dark) -->
+    <div class="p-5 space-y-4">
+      <div class="flex items-center justify-between text-xs text-slate-400">
+        <span class="font-medium text-slate-300">Live Quiz View Simulation</span>
+        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold text-[10px] border border-emerald-500/20">
+          Page Background: Clean High-Contrast
+        </span>
+      </div>
 
-          <ProgressBar :value="60" :showValue="false" class="h-1.5 rounded-full bg-white/10">
-            <div class="h-full rounded-full transition-all" :style="{ width: '60%', backgroundColor: theme.secondary_color }" />
-          </ProgressBar>
-
-          <p class="font-extrabold text-base leading-snug">
-            Which element has the chemical symbol 'Au'?
-          </p>
+      <div class="rounded-xl p-4 bg-slate-900/90 border border-slate-800 space-y-2.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-indigo-400 font-bold">Question 1 of 5</span>
+          <span class="font-mono text-slate-400">⏱️ 15s</span>
         </div>
-      </template>
-    </Card>
+        <p class="font-bold text-sm text-white">
+          Which planet in our solar system is known as the Red Planet?
+        </p>
+      </div>
 
-    <!-- 4 simulated option buttons -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
-      <button class="py-2.5 px-3 rounded-lg text-xs font-bold bg-rose-600/90 text-white flex items-center space-x-2">
-        <span>▲</span> <span>Silver</span>
-      </button>
-      <button class="py-2.5 px-3 rounded-lg text-xs font-bold text-white flex items-center space-x-2 shadow-lg"
-              :style="{ backgroundColor: theme.button_color }">
-        <span>◆</span> <span>Gold (Selected)</span>
-      </button>
-      <button class="py-2.5 px-3 rounded-lg text-xs font-bold bg-amber-600/90 text-white flex items-center space-x-2">
-        <span>●</span> <span>Copper</span>
-      </button>
-      <button class="py-2.5 px-3 rounded-lg text-xs font-bold bg-emerald-600/90 text-white flex items-center space-x-2">
-        <span>■</span> <span>Iron</span>
-      </button>
-    </div>
+      <div class="grid grid-cols-2 gap-2 text-xs font-semibold text-white">
+        <div class="p-2.5 rounded-lg bg-rose-600/90 flex items-center space-x-2">
+          <span>▲</span> <span>Mars</span>
+        </div>
+        <div class="p-2.5 rounded-lg bg-blue-600/90 flex items-center space-x-2">
+          <span>◆</span> <span>Jupiter</span>
+        </div>
+      </div>
 
-    <!-- Action button -->
-    <div class="flex justify-end">
-      <Button
-        label="Primary Action Button"
-        icon="pi pi-check"
-        size="small"
-        class="border-none text-white font-bold text-xs px-4 py-2 rounded-lg shadow-md"
-        :style="{ backgroundColor: theme.button_color }"
-      />
+      <p class="text-[11px] text-slate-500 text-center italic">
+        Only the top Navbar adopts your custom color. Backgrounds and quiz typography stay dark and crisp.
+      </p>
     </div>
   </div>
 </template>

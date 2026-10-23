@@ -100,38 +100,25 @@ function save() {
           </div>
         </div>
 
-        <!-- Color pickers -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-400">Primary Color</label>
-            <div class="flex items-center space-x-2">
-              <input type="color" v-model="themeData.primary_color" class="w-8 h-8 rounded border-none cursor-pointer bg-transparent" />
-              <InputText v-model="themeData.primary_color" class="p-inputtext-sm font-mono text-xs w-full" />
-            </div>
+        <!-- Navbar Color Picker -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase text-slate-300">Navbar Color</label>
+            <span class="text-[10px] text-slate-500">Only changes navigation bar</span>
           </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-400">Secondary Color</label>
-            <div class="flex items-center space-x-2">
-              <input type="color" v-model="themeData.secondary_color" class="w-8 h-8 rounded border-none cursor-pointer bg-transparent" />
-              <InputText v-model="themeData.secondary_color" class="p-inputtext-sm font-mono text-xs w-full" />
-            </div>
+          <div class="flex items-center space-x-3">
+            <input type="color" v-model="themeData.primary_color" class="w-9 h-9 rounded-lg border border-slate-700 cursor-pointer bg-transparent" />
+            <InputText v-model="themeData.primary_color" placeholder="#0F172A" class="p-inputtext-sm font-mono text-xs w-32 bg-slate-950 text-white border-slate-700" />
           </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-400">Background Color</label>
-            <div class="flex items-center space-x-2">
-              <input type="color" v-model="themeData.background_color" class="w-8 h-8 rounded border-none cursor-pointer bg-transparent" />
-              <InputText v-model="themeData.background_color" class="p-inputtext-sm font-mono text-xs w-full" />
-            </div>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-400">Button Color</label>
-            <div class="flex items-center space-x-2">
-              <input type="color" v-model="themeData.button_color" class="w-8 h-8 rounded border-none cursor-pointer bg-transparent" />
-              <InputText v-model="themeData.button_color" class="p-inputtext-sm font-mono text-xs w-full" />
-            </div>
+          <!-- Presets -->
+          <div class="flex items-center space-x-2 pt-1">
+            <span class="text-[10px] text-slate-500">Presets:</span>
+            <button type="button" @click="themeData.primary_color = '#0F172A'" class="w-5 h-5 rounded-full border border-white/20 bg-[#0F172A]" title="Slate Dark"></button>
+            <button type="button" @click="themeData.primary_color = '#1E1B4B'" class="w-5 h-5 rounded-full border border-white/20 bg-[#1E1B4B]" title="Deep Indigo"></button>
+            <button type="button" @click="themeData.primary_color = '#0F2240'" class="w-5 h-5 rounded-full border border-white/20 bg-[#0F2240]" title="Navy Blue"></button>
+            <button type="button" @click="themeData.primary_color = '#062E24'" class="w-5 h-5 rounded-full border border-white/20 bg-[#062E24]" title="Emerald Dark"></button>
+            <button type="button" @click="themeData.primary_color = '#360918'" class="w-5 h-5 rounded-full border border-white/20 bg-[#360918]" title="Wine Red"></button>
+            <button type="button" @click="themeData.primary_color = '#09090B'" class="w-5 h-5 rounded-full border border-white/20 bg-[#09090B]" title="Pitch Black"></button>
           </div>
         </div>
       </div>

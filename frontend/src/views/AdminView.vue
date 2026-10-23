@@ -121,16 +121,21 @@ async function saveQuizTheme(theme: any) {
     id: editingQuiz.value.id,
     theme_logo_url: theme.logo_url,
     theme_primary_color: theme.primary_color,
-    theme_secondary_color: theme.secondary_color,
-    theme_bg_color: theme.background_color,
-    theme_btn_color: theme.button_color,
+    theme_secondary_color: '#EC4899',
+    theme_bg_color: '#0B0F19',
+    theme_btn_color: '#4F46E5',
   });
   await quizStore.fetchQuizzes();
 }
 
 async function saveOrgBranding() {
   orgSaveSuccess.value = false;
-  await brandingStore.updateOrgConfig(orgForm.value);
+  await brandingStore.updateOrgConfig({
+    ...orgForm.value,
+    secondary_color: '#EC4899',
+    background_color: '#0B0F19',
+    button_color: '#4F46E5',
+  });
   orgSaveSuccess.value = true;
   setTimeout(() => (orgSaveSuccess.value = false), 3000);
 }
@@ -336,37 +341,25 @@ function handleOrgLogoUpload(event: Event) {
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1">
-                  <label class="text-xs font-bold text-slate-400">Primary Color</label>
-                  <div class="flex items-center space-x-2">
-                    <input type="color" v-model="orgForm.primary_color" class="w-8 h-8 rounded border-none bg-transparent cursor-pointer" />
-                    <InputText v-model="orgForm.primary_color" class="p-inputtext-sm font-mono text-xs w-full bg-slate-950/60" />
-                  </div>
+              <!-- Navbar Color Picker Only -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-bold text-slate-300">Navbar Color</label>
+                  <span class="text-[11px] text-slate-500">Only changes top navigation bar</span>
                 </div>
-
-                <div class="space-y-1">
-                  <label class="text-xs font-bold text-slate-400">Secondary Color</label>
-                  <div class="flex items-center space-x-2">
-                    <input type="color" v-model="orgForm.secondary_color" class="w-8 h-8 rounded border-none bg-transparent cursor-pointer" />
-                    <InputText v-model="orgForm.secondary_color" class="p-inputtext-sm font-mono text-xs w-full bg-slate-950/60" />
-                  </div>
+                <div class="flex items-center space-x-3">
+                  <input type="color" v-model="orgForm.primary_color" class="w-10 h-10 rounded-lg border border-slate-700 bg-transparent cursor-pointer" />
+                  <InputText v-model="orgForm.primary_color" placeholder="#0F172A" class="p-inputtext-sm font-mono text-xs w-36 bg-slate-950 text-white border-slate-700" />
                 </div>
-
-                <div class="space-y-1">
-                  <label class="text-xs font-bold text-slate-400">Background Color</label>
-                  <div class="flex items-center space-x-2">
-                    <input type="color" v-model="orgForm.background_color" class="w-8 h-8 rounded border-none bg-transparent cursor-pointer" />
-                    <InputText v-model="orgForm.background_color" class="p-inputtext-sm font-mono text-xs w-full bg-slate-950/60" />
-                  </div>
-                </div>
-
-                <div class="space-y-1">
-                  <label class="text-xs font-bold text-slate-400">Button Color</label>
-                  <div class="flex items-center space-x-2">
-                    <input type="color" v-model="orgForm.button_color" class="w-8 h-8 rounded border-none bg-transparent cursor-pointer" />
-                    <InputText v-model="orgForm.button_color" class="p-inputtext-sm font-mono text-xs w-full bg-slate-950/60" />
-                  </div>
+                <!-- Presets -->
+                <div class="flex items-center space-x-2 pt-1">
+                  <span class="text-[11px] text-slate-500">Presets:</span>
+                  <button type="button" @click="orgForm.primary_color = '#0F172A'" class="w-5 h-5 rounded-full border border-white/20 bg-[#0F172A]" title="Slate Dark"></button>
+                  <button type="button" @click="orgForm.primary_color = '#1E1B4B'" class="w-5 h-5 rounded-full border border-white/20 bg-[#1E1B4B]" title="Deep Indigo"></button>
+                  <button type="button" @click="orgForm.primary_color = '#0F2240'" class="w-5 h-5 rounded-full border border-white/20 bg-[#0F2240]" title="Navy Blue"></button>
+                  <button type="button" @click="orgForm.primary_color = '#062E24'" class="w-5 h-5 rounded-full border border-white/20 bg-[#062E24]" title="Emerald Dark"></button>
+                  <button type="button" @click="orgForm.primary_color = '#360918'" class="w-5 h-5 rounded-full border border-white/20 bg-[#360918]" title="Wine Red"></button>
+                  <button type="button" @click="orgForm.primary_color = '#09090B'" class="w-5 h-5 rounded-full border border-white/20 bg-[#09090B]" title="Pitch Black"></button>
                 </div>
               </div>
 

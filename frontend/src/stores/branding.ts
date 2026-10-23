@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { api } from '@/services/api';
 import type { OrganizationConfig, ThemeConfig } from '@/types/quiz';
 
@@ -9,9 +9,9 @@ export const MAIN_BRAND_NAME = 'EZSN Quiz';
 const DEFAULT_BRANDING: ThemeConfig = {
   org_name: 'EZSN Quiz',
   logo_url: null,
-  primary_color: '#6366F1',
+  primary_color: '#0F172A', // Navbar background color
   secondary_color: '#EC4899',
-  background_color: '#0F172A',
+  background_color: '#0B0F19',
   button_color: '#4F46E5',
 };
 
@@ -19,6 +19,9 @@ export const useBrandingStore = defineStore('branding', () => {
   const currentTheme = ref<ThemeConfig>({ ...DEFAULT_BRANDING });
   const orgConfig = ref<OrganizationConfig | null>(null);
   const isLoading = ref(false);
+
+  // The only color that can change across the UI is the navigation bar background color
+  const navbarColor = computed(() => currentTheme.value.primary_color || '#0F172A');
 
   function applyTheme(theme: Partial<ThemeConfig>) {
     currentTheme.value = {
@@ -28,14 +31,7 @@ export const useBrandingStore = defineStore('branding', () => {
 
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      root.style.setProperty('--brand-primary', currentTheme.value.primary_color);
-      root.style.setProperty('--brand-secondary', currentTheme.value.secondary_color);
-      root.style.setProperty('--brand-bg', currentTheme.value.background_color);
-      root.style.setProperty('--brand-btn', currentTheme.value.button_color);
-
-      // Map to PrimeVue primary color variables
-      root.style.setProperty('--p-primary-500', currentTheme.value.primary_color);
-      root.style.setProperty('--p-primary-color', currentTheme.value.primary_color);
+      root.style.setProperty('--brand-navbar-bg', navbarColor.value);
     }
   }
 
@@ -86,6 +82,7 @@ export const useBrandingStore = defineStore('branding', () => {
     MAIN_BRAND_LOGO,
     MAIN_BRAND_NAME,
     currentTheme,
+    navbarColor,
     orgConfig,
     isLoading,
     applyTheme,

@@ -19,11 +19,14 @@ function toggleSound() {
 </script>
 
 <template>
-  <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40 transition-colors">
+  <header
+    class="border-b border-white/10 sticky top-0 z-40 transition-colors duration-300 shadow-lg"
+    :style="{ backgroundColor: brandingStore.navbarColor }"
+  >
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <!-- Main Brand Logo (Always Permanent: EZSN) -->
       <router-link to="/" class="flex items-center space-x-3 group">
-        <span class="text-xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors">
+        <span class="text-xl font-black tracking-tight text-white group-hover:text-indigo-300 transition-colors">
           ezsnapps
         </span>
       </router-link>
@@ -31,7 +34,7 @@ function toggleSound() {
       <!-- Center: Organization Branding (Visible during active quiz sessions) -->
       <div
         v-if="isGameRoute && (brandingStore.currentTheme.logo_url || brandingStore.currentTheme.org_name)"
-        class="hidden sm:flex items-center space-x-2.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 shadow-sm"
+        class="hidden sm:flex items-center space-x-2.5 px-3 py-1 rounded-full bg-black/40 border border-white/15 backdrop-blur-sm shadow-sm"
       >
         <img
           v-if="brandingStore.currentTheme.logo_url"
@@ -40,7 +43,7 @@ function toggleSound() {
           class="h-5 w-auto max-w-[90px] object-contain rounded"
         />
         <div class="flex items-center space-x-1.5 text-xs">
-          <span class="text-[10px] font-extrabold uppercase text-indigo-400">Host:</span>
+          <span class="text-[10px] font-extrabold uppercase text-indigo-300">Host:</span>
           <span class="font-bold text-white truncate max-w-[140px]">
             {{ brandingStore.currentTheme.org_name }}
           </span>
@@ -54,14 +57,14 @@ function toggleSound() {
           :icon="isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"
           text
           rounded
-          severity="secondary"
+          class="text-white/80 hover:text-white"
           @click="toggleSound"
           :aria-label="isMuted ? 'Unmute' : 'Mute'"
         />
 
         <!-- Home / Join -->
         <router-link to="/">
-          <Button label="Join" icon="pi pi-play" text size="small" class="text-slate-300" />
+          <Button label="Join" icon="pi pi-play" text size="small" class="text-white/90 hover:text-white font-medium" />
         </router-link>
 
         <!-- Admin / Manage -->
@@ -70,7 +73,7 @@ function toggleSound() {
             :label="authStore.isAuthenticated ? 'Dashboard' : 'Admin'"
             icon="pi pi-cog"
             size="small"
-            class="bg-indigo-600 hover:bg-indigo-500 border-none font-semibold text-white shadow-md shadow-indigo-600/20"
+            class="bg-indigo-600 hover:bg-indigo-500 border-none font-semibold text-white shadow-md shadow-indigo-600/30"
           />
         </router-link>
       </div>

@@ -16,8 +16,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col font-sans transition-colors duration-300"
-       :style="{ backgroundColor: 'var(--brand-bg, #0F172A)' }">
+  <div class="min-h-screen flex flex-col font-sans bg-slate-950 text-slate-100">
     <AppHeader />
     <div class="flex-1">
       <router-view />
