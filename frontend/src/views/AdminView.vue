@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useQuizStore } from '@/stores/quiz';
@@ -11,6 +11,8 @@ import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import Dialog from 'primevue/dialog';
+import QRCode from 'qrcode';
 import QuizCard from '@/components/admin/QuizCard.vue';
 import ThemePreviewCard from '@/components/common/ThemePreviewCard.vue';
 import ThemeEditorModal from '@/components/admin/ThemeEditorModal.vue';
@@ -30,6 +32,18 @@ const activeTab = ref<'quizzes' | 'branding' | 'history'>('quizzes');
 // Quiz Theme Customization Modal
 const themeModalVisible = ref(false);
 const editingQuiz = ref<QuizSummary | null>(null);
+
+// Admin Launch Room Modal with QR Code
+const launchModalVisible = ref(false);
+const launchedRoom = ref<{ pin: string; token: string; title: string; qrUrl: string } | null>(null);
+const launchPinCopied = ref(false);
+const launchLinkCopied = ref(false);
+
+const playerJoinUrl = computed(() => {
+  if (!launchedRoom.value) return '';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://quiz.ezsnapps.in';
+  return `${origin}/play?pin=${launchedRoom.value.pin}`;
+});
 
 // Org branding editable state
 const orgForm = ref({
@@ -83,13 +97,53 @@ async function loadDashboardData() {
 }
 
 async function handleLaunch(quizId: string) {
+  const quiz = quizStore.quizzes.find((q) => q.id === quizId);
   const room = await quizStore.launchRoom(quizId);
   if (room) {
-    router.push({
-      path: '/host',
-      query: { pin: room.pin, token: room.host_token },
-    });
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://quiz.ezsnapps.in';
+    const joinUrl = `${origin}/play?pin=${room.pin}`;
+    let qrUrl = '';
+    try {
+      qrUrl = await QRCode.toDataURL(joinUrl, {
+        width: 360,
+        margin: 1.5,
+        color: { dark: '#0f172a', light: '#ffffff' },
+      });
+    } catch (e) {
+      console.error('Failed to generate QR:', e);
+    }
+
+    launchedRoom.value = {
+      pin: room.pin,
+      token: room.host_token,
+      title: quiz?.title || 'Live Quiz Competition',
+      qrUrl,
+    };
+    launchModalVisible.value = true;
   }
+}
+
+function goToHostScreen() {
+  if (!launchedRoom.value) return;
+  router.push({
+    path: '/host',
+    query: { pin: launchedRoom.value.pin, token: launchedRoom.value.token },
+  });
+}
+
+function copyLaunchPin() {
+  if (!launchedRoom.value) return;
+  navigator.clipboard.writeText(launchedRoom.value.pin);
+  launchPinCopied.value = true;
+  setTimeout(() => (launchPinCopied.value = false), 2000);
+}
+
+function copyLaunchLink() {
+  if (!launchedRoom.value) return;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://quiz.ezsnapps.in';
+  navigator.clipboard.writeText(`${origin}/play?pin=${launchedRoom.value.pin}`);
+  launchLinkCopied.value = true;
+  setTimeout(() => (launchLinkCopied.value = false), 2000);
 }
 
 function handleEdit(quizId: string) {
@@ -420,5 +474,85 @@ function handleOrgLogoUpload(event: Event) {
       }"
       @save="saveQuizTheme"
     />
+
+    <!-- Admin Launch QR Modal -->
+    <Dialog
+      v-model:visible="launchModalVisible"
+      modal
+      :header="launchedRoom?.title ? `${launchedRoom.title} Launched! 🚀` : 'Quiz Launched! 🚀'"
+      :style="{ width: '92vw', maxWidth: '520px' }"
+      class="p-dialog-dark"
+    >
+      <div v-if="launchedRoom" class="space-y-5 py-2 text-center">
+        <p class="text-xs sm:text-sm text-slate-300">
+          Your quiz is live! Players can scan this QR code with their mobile phone to move automatically to the quiz competition.
+        </p>
+
+        <!-- Big QR Code Display -->
+        <div class="flex flex-col items-center justify-center p-5 bg-slate-950/90 rounded-2xl border border-slate-800 shadow-inner">
+          <div class="bg-white p-3 rounded-2xl shadow-2xl mb-3">
+            <img
+              v-if="launchedRoom.qrUrl"
+              :src="launchedRoom.qrUrl"
+              alt="Scan to join quiz"
+              class="w-52 h-52 sm:w-60 sm:h-60 object-contain rounded-lg"
+            />
+          </div>
+
+          <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-wider mb-2 border border-emerald-500/20">
+            <i class="pi pi-camera" />
+            <span>Scan to join instantly on mobile</span>
+          </span>
+
+          <div class="flex items-center justify-center space-x-2 mt-1">
+            <span class="text-xs text-slate-400 uppercase font-bold">Room PIN:</span>
+            <span class="text-3xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 tracking-wider">
+              {{ launchedRoom.pin }}
+            </span>
+            <Button
+              :icon="launchPinCopied ? 'pi pi-check' : 'pi pi-copy'"
+              :class="launchPinCopied ? 'p-button-success' : 'p-button-secondary'"
+              text
+              rounded
+              size="small"
+              @click="copyLaunchPin"
+              title="Copy PIN"
+            />
+          </div>
+        </div>
+
+        <!-- Join Link Copy Bar -->
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+          <span class="text-slate-400 truncate max-w-[280px] font-mono text-[11px]">
+            {{ playerJoinUrl }}
+          </span>
+          <Button
+            :label="launchLinkCopied ? 'Copied!' : 'Copy Link'"
+            icon="pi pi-link"
+            size="small"
+            text
+            class="text-indigo-400 font-bold shrink-0"
+            @click="copyLaunchLink"
+          />
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+          <Button
+            label="Open Host Screen (Projector)"
+            icon="pi pi-external-link"
+            class="flex-1 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 border-none font-bold text-white py-3 rounded-xl shadow-lg shadow-emerald-500/20"
+            @click="goToHostScreen"
+          />
+          <Button
+            label="Close"
+            text
+            severity="secondary"
+            class="text-slate-400"
+            @click="launchModalVisible = false"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>

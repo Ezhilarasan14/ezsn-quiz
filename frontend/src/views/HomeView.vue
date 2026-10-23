@@ -19,8 +19,9 @@ const errorMessage = ref('');
 onMounted(() => {
   const queryPin = (route.query.pin as string) || '';
   if (queryPin) {
-    pin.value = queryPin.trim().replace(/\D/g, '');
-    isQrScanned.value = true;
+    // Automatically move to the quiz competition screen
+    router.replace({ path: '/play', query: { pin: queryPin.trim() } });
+    return;
   }
 });
 
