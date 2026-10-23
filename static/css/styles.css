@@ -1,0 +1,333 @@
+/* Kahoot-inspired Modern Styling & Theme */
+:root {
+  --color-red: #e21b3c;
+  --color-red-dark: #c01431;
+  --color-blue: #1368ce;
+  --color-blue-dark: #0f52a4;
+  --color-yellow: #d89e00;
+  --color-yellow-dark: #b28200;
+  --color-green: #26890c;
+  --color-green-dark: #1e6c09;
+  --color-bg-dark: #25076b;
+  --color-bg-deep: #130338;
+  --color-card-bg: rgba(255, 255, 255, 0.08);
+  --color-card-border: rgba(255, 255, 255, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: radial-gradient(circle at 50% 20%, #46178f 0%, #1f0550 70%, #0d0126 100%);
+  color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Cards */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.45);
+  border-radius: 1.25rem;
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  width: 100%;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.glass-input:focus {
+  border-color: #ffd000;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 15px rgba(255, 208, 0, 0.4);
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+/* Vibrant Answer Buttons */
+.btn-answer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 1.25rem;
+  border: none;
+  border-radius: 1rem;
+  color: white;
+  font-weight: 800;
+  font-size: 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25), 0 15px 25px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.2s ease;
+  user-select: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  min-height: 110px;
+}
+
+.btn-answer:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.btn-answer:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.5) opacity(0.7);
+}
+
+.btn-red {
+  background: linear-gradient(135deg, var(--color-red) 0%, var(--color-red-dark) 100%);
+  border-bottom: 5px solid #8e0b21;
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-blue-dark) 100%);
+  border-bottom: 5px solid #083770;
+}
+
+.btn-yellow {
+  background: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-yellow-dark) 100%);
+  border-bottom: 5px solid #775700;
+}
+
+.btn-green {
+  background: linear-gradient(135deg, var(--color-green) 0%, var(--color-green-dark) 100%);
+  border-bottom: 5px solid #144906;
+}
+
+/* Shapes */
+.shape-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Answer shapes matching Kahoot: Triangle, Diamond, Circle, Square */
+.shape-triangle {
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 32px solid white;
+}
+
+.shape-diamond {
+  width: 26px;
+  height: 26px;
+  background-color: white;
+  transform: rotate(45deg);
+}
+
+.shape-circle {
+  width: 30px;
+  height: 30px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.shape-square {
+  width: 28px;
+  height: 28px;
+  background-color: white;
+  border-radius: 4px;
+}
+
+/* Primary Action Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 700;
+  padding: 0.9rem 1.75rem;
+  border-radius: 0.85rem;
+  border: none;
+  border-bottom: 4px solid #047857;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(3px);
+  border-bottom-width: 1px;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 1.05rem;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Circular Timer Indicator */
+.timer-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 4px solid #ffd000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: white;
+  box-shadow: 0 0 20px rgba(255, 208, 0, 0.45);
+}
+
+.timer-circle.timer-warning {
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+  animation: pulse-danger 0.8s infinite alternate;
+}
+
+@keyframes pulse-danger {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Podium Styles */
+.podium-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  min-height: 320px;
+}
+
+.podium-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 140px;
+  transition: all 0.3s ease;
+}
+
+.podium-pillar {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-top: 4px solid rgba(255, 255, 255, 0.4);
+}
+
+.pillar-1 {
+  height: 200px;
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+}
+
+.pillar-2 {
+  height: 150px;
+  background: linear-gradient(180deg, #9ca3af 0%, #4b5563 100%);
+}
+
+.pillar-3 {
+  height: 110px;
+  background: linear-gradient(180deg, #d97706 0%, #78350f 100%);
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  padding: 14px 20px;
+  background: rgba(17, 24, 39, 0.95);
+  color: white;
+  border-radius: 12px;
+  border-left: 6px solid #10b981;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+  animation: slideUp 0.3s ease forwards;
+}
+
+.toast-error {
+  border-left-color: #ef4444;
+}
+
+/* Canvas Confetti Layer */
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+}

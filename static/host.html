@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Host Screen - EZSN Quiz</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex flex-col justify-between select-none">
+  <!-- Host Top Bar -->
+  <header class="w-full px-6 py-4 flex items-center justify-between border-b border-white/10 bg-black/25 backdrop-blur-md">
+    <div class="flex items-center gap-4">
+      <a href="/" class="text-white/70 hover:text-white transition font-bold flex items-center gap-2 text-sm">
+        &larr; Exit
+      </a>
+      <span class="text-white/20">|</span>
+      <div>
+        <h1 id="host-quiz-title" class="text-lg font-black text-white">Loading Quiz...</h1>
+        <p class="text-xs text-white/60">Host Presenter View</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="px-4 py-2 rounded-xl bg-white/10 border border-white/15 flex items-center gap-2">
+        <span class="text-xs uppercase font-bold text-white/60">Game PIN:</span>
+        <span id="host-pin-display" class="font-black text-xl tracking-wider text-amber-400">------</span>
+      </div>
+      <button id="btn-sound-toggle" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition text-sm">
+        <span id="sound-icon">🔊</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Host Main View Container -->
+  <main class="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex flex-col items-center justify-center relative">
+    
+    <!-- State 1: Lobby View -->
+    <div id="view-lobby" class="w-full flex flex-col items-center animate-slide-up">
+      <div class="glass-panel p-8 w-full max-w-3xl text-center mb-8 border-2 border-amber-400/30">
+        <p class="text-sm font-bold uppercase tracking-widest text-amber-400 mb-2">Join on any phone or browser</p>
+        <div class="text-6xl md:text-7xl font-black tracking-widest text-white drop-shadow-md py-2">
+          PIN: <span id="lobby-pin" class="text-amber-400 font-mono">------</span>
+        </div>
+        <p class="text-white/70 text-sm mt-2">Go to <span id="lobby-url" class="font-bold text-white underline">quiz link</span> to join</p>
+      </div>
+
+      <div class="w-full max-w-4xl">
+        <div class="flex items-center justify-between mb-4 px-2">
+          <div class="flex items-center gap-2 font-bold text-lg text-white">
+            <span>👥 Players Joined:</span>
+            <span id="player-count" class="px-2.5 py-0.5 rounded-full bg-white/20 text-amber-300 font-black">0</span>
+          </div>
+          <span class="text-xs text-white/50">Click any player to remove</span>
+        </div>
+
+        <div id="player-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 min-h-[160px] p-4 glass-panel">
+          <div class="col-span-full text-center py-12 text-white/40 italic">
+            Waiting for players to join with the PIN...
+          </div>
+        </div>
+
+        <div class="mt-8 flex justify-center">
+          <button id="btn-start-game" class="btn-primary text-2xl py-4 px-12 font-black shadow-2xl flex items-center gap-3">
+            <span>Start Game</span>
+            <span>🏁</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 2: Question Intro Countdown -->
+    <div id="view-intro" class="w-full flex flex-col items-center justify-center text-center hidden animate-bounce-in">
+      <div class="text-amber-400 font-bold uppercase tracking-widest text-lg mb-4" id="intro-q-counter">
+        Question 1 of 5
+      </div>
+      <div class="glass-panel p-10 max-w-3xl w-full">
+        <h2 id="intro-q-text" class="text-3xl md:text-5xl font-black text-white leading-tight mb-8">
+          Question Text
+        </h2>
+        <div class="flex flex-col items-center justify-center">
+          <div id="intro-countdown" class="w-24 h-24 rounded-full bg-amber-500/20 border-4 border-amber-400 text-amber-300 font-black text-5xl flex items-center justify-center shadow-lg">
+            3
+          </div>
+          <p class="text-sm text-white/60 font-bold mt-4">Get Ready!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- State 3: Active Question View -->
+    <div id="view-question" class="w-full flex flex-col items-center hidden animate-slide-up">
+      <!-- Question Header -->
+      <div class="w-full flex items-center justify-between gap-4 mb-6">
+        <span id="active-q-counter" class="text-sm font-extrabold uppercase px-4 py-2 rounded-xl bg-white/10 text-white/80">
+          Question 1/5
+        </span>
+
+        <!-- Timer Circle -->
+        <div id="active-timer" class="timer-circle">
+          20
+        </div>
+
+        <!-- Answers Count Indicator -->
+        <div class="text-right">
+          <span class="text-xs uppercase font-bold text-white/60 block">Answers</span>
+          <span id="active-answers-count" class="text-2xl font-black text-amber-300">0</span>
+          <span id="active-total-players" class="text-sm text-white/50">/ 0</span>
+        </div>
+      </div>
+
+      <!-- Question Text Banner -->
+      <div class="glass-panel w-full p-8 mb-8 text-center border-t-2 border-white/20">
+        <h2 id="active-q-text" class="text-2xl md:text-4xl font-black text-white leading-snug">
+          Question text goes here
+        </h2>
+      </div>
+
+      <!-- 4 Answer Option Cards -->
+      <div id="active-options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <!-- Rendered dynamically with colors & shapes -->
+      </div>
+
+      <div class="mt-8 flex justify-end w-full">
+        <button id="btn-skip-question" class="btn-secondary text-sm py-2 px-6">
+          Skip Question &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- State 4: Question Result View (Stats / Reveal) -->
+    <div id="view-result" class="w-full flex flex-col items-center hidden animate-slide-up">
+      <div class="w-full flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-black text-white">Answer Distribution</h2>
+        <button id="btn-next-to-leaderboard" class="btn-primary py-3 px-8 text-lg font-black flex items-center gap-2">
+          <span>Leaderboard</span>
+          <span>&rarr;</span>
+        </button>
+      </div>
+
+      <!-- Stats Bar Chart Grid -->
+      <div id="result-options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-8">
+        <!-- Dynamic Result cards with vote count and correct checkmark -->
+      </div>
+    </div>
+
+    <!-- State 5: Leaderboard View -->
+    <div id="view-leaderboard" class="w-full flex flex-col items-center hidden animate-slide-up">
+      <div class="w-full max-w-3xl flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🏆</span>
+          <h2 class="text-3xl font-black text-white">Scoreboard</h2>
+        </div>
+        <button id="btn-leaderboard-next" class="btn-primary py-3 px-8 text-lg font-black flex items-center gap-2">
+          <span id="btn-next-label">Next Question</span>
+          <span>&rarr;</span>
+        </button>
+      </div>
+
+      <div id="leaderboard-list" class="w-full max-w-3xl space-y-3">
+        <!-- Ranked player cards -->
+      </div>
+    </div>
+
+    <!-- State 6: Final Podium View -->
+    <div id="view-podium" class="w-full flex flex-col items-center hidden animate-slide-up">
+      <div class="text-center mb-4">
+        <span class="text-4xl">👑</span>
+        <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight mt-1">Quiz Champions!</h2>
+        <p class="text-amber-400 font-bold mt-1 text-base">Congratulations to all players</p>
+      </div>
+
+      <!-- 3-2-1 Podium Columns -->
+      <div class="podium-container" id="podium-pillars">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Full Final Scoreboard Table -->
+      <div class="w-full max-w-3xl glass-panel p-6 mt-8">
+        <h3 class="text-xl font-black text-white mb-4">Full Final Standings</h3>
+        <div id="podium-full-list" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <!-- Standings rows -->
+        </div>
+      </div>
+
+      <div class="mt-8 flex gap-4">
+        <a href="/" class="btn-secondary py-3 px-8 font-bold">Return Home</a>
+        <a href="/history" class="btn-primary py-3 px-8 font-bold">View History &rarr;</a>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/js/audio.js"></script>
+  <script src="/js/confetti.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>

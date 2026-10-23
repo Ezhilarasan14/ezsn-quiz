@@ -1,0 +1,26 @@
+[package]
+name = "ezsn-quiz"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.9"
+actix-ws = "0.3"
+actix-cors = "0.7"
+tokio = { version = "1.38", features = ["full"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate", "chrono", "uuid"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.9", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"
+rust-embed = "8.4"
+mime_guess = "2.0"
+env_logger = "0.11"
+log = "0.4"
+parking_lot = "0.12"
+dotenvy = "0.15"
+
+
