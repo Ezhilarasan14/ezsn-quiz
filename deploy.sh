@@ -49,26 +49,29 @@ ls -lh "$BINARY_PATH"
 echo "🚀 3. Uploading application binary..."
 rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 
-echo "🔐 4. Restarting ${SERVICE_NAME} service..."
-ssh -o ConnectTimeout=5 "$SERVER" "
+echo "🔐 4. Restarting ${SERVICE_NAME} and verifying endpoints..."
+ssh -o ConnectTimeout=10 "$SERVER" "
     set -e
     chmod 755 '${APP_DIR}/${BINARY_NAME}'
-    chown www-data:www-data '${APP_DIR}/${BINARY_NAME}'
+    chown -R www-data:www-data '${APP_DIR}'
     systemctl restart '${SERVICE_NAME}'
-    sleep 2
 
-    if ! systemctl is-active --quiet '${SERVICE_NAME}'; then
-        echo '❌ ${SERVICE_NAME} failed to start! Recent logs:'
-        journalctl -u '${SERVICE_NAME}' -n 30 --no-pager
+    echo '  ... Waiting for ${SERVICE_NAME} to initialize ...'
+    HEALTH=''
+    for i in 1 2 3 4 5; do
+        sleep 1
+        HEALTH=\$(curl -s --connect-timeout 1 --max-time 2 http://127.0.0.1:${INTERNAL_PORT}/health/db 2>/dev/null || true)
+        if [[ -n \"\$HEALTH\" ]]; then
+            break
+        fi
+    done
+
+    if [[ -z \"\$HEALTH\" ]]; then
+        echo '❌ ${SERVICE_NAME} failed to respond on port ${INTERNAL_PORT}! Recent logs:'
+        journalctl -u '${SERVICE_NAME}' -n 35 --no-pager
         exit 1
     fi
-    echo '  ✓ ${SERVICE_NAME} service restarted and active.'
-"
 
-echo "🧪 5. Verifying local endpoints on server..."
-ssh -o ConnectTimeout=5 "$SERVER" "
-    set -e
-    HEALTH=\$(curl -s --connect-timeout 2 --max-time 3 http://127.0.0.1:${INTERNAL_PORT}/health/db || echo 'timeout')
     echo \"  -> Health: \$HEALTH\"
 
     WS_STATUS=\$( (curl -s -i --connect-timeout 2 --max-time 3 \
@@ -76,12 +79,12 @@ ssh -o ConnectTimeout=5 "$SERVER" "
       -H \"Upgrade: websocket\" \
       -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
       -H \"Sec-WebSocket-Version: 13\" \
-      http://127.0.0.1:${INTERNAL_PORT}/ws || true) | head -n 1 | tr -d '\r' )
+      http://127.0.0.1:${INTERNAL_PORT}/ws 2>/dev/null || true) | head -n 1 | tr -d '\r' )
     WS_CODE=\$(echo \"\$WS_STATUS\" | awk '{print \$2}')
     echo \"  -> Local WebSocket: HTTP \${WS_CODE:-N/A} (Expected 101)\"
 "
 
-echo "🌐 6. Checking public HTTPS endpoint..."
+echo "🌐 5. Checking public HTTPS endpoint..."
 if curl -s --fail --connect-timeout 3 --max-time 5 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
     echo "  ✓ https://${PUBLIC_DOMAIN} is online and healthy!"
 else
