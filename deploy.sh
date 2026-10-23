@@ -68,6 +68,7 @@ EOF
 echo "🔧 7. Synchronizing systemd service..."
 if [[ -f "${PROJECT_DIR}/deployment/quiz.service" ]]; then
     rsync -avz "${PROJECT_DIR}/deployment/quiz.service" "${SERVER}:/etc/systemd/system/${SERVICE_NAME}.service"
+    ssh "$SERVER" "systemctl daemon-reload && systemctl enable ${SERVICE_NAME}"
 fi
 
 echo "🌐 8. Configuring and cleaning up Nginx configs for WebSockets..."
