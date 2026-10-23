@@ -1,3 +1,4 @@
+pub mod health;
 pub mod history;
 pub mod quizzes;
 pub mod rooms;
@@ -7,6 +8,9 @@ use actix_web::web;
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
+            // Health
+            .route("/health", web::get().to(health::health_check))
+            .route("/health/db", web::get().to(health::health_db))
             // Quizzes CRUD
             .route("/quizzes", web::get().to(quizzes::list_quizzes))
             .route("/quizzes", web::post().to(quizzes::create_quiz))
@@ -20,5 +24,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             // History
             .route("/history", web::get().to(history::list_history))
             .route("/history/{game_id}", web::get().to(history::get_game_results)),
-    );
+    )
+    .route("/health", web::get().to(health::health_check))
+    .route("/health/db", web::get().to(health::health_db));
 }
