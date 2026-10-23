@@ -50,7 +50,7 @@ echo "🚀 3. Uploading application binary..."
 rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 
 echo "🔐 4. Restarting ${SERVICE_NAME} service..."
-ssh "$SERVER" "
+ssh -o ConnectTimeout=5 "$SERVER" "
     set -e
     chmod 755 '${APP_DIR}/${BINARY_NAME}'
     chown www-data:www-data '${APP_DIR}/${BINARY_NAME}'
@@ -66,21 +66,23 @@ ssh "$SERVER" "
 "
 
 echo "🧪 5. Verifying local endpoints on server..."
-ssh "$SERVER" "
+ssh -o ConnectTimeout=5 "$SERVER" "
     set -e
-    echo '  -> Health: '\$(curl -s http://127.0.0.1:${INTERNAL_PORT}/health/db)
+    HEALTH=\$(curl -s --connect-timeout 2 --max-time 3 http://127.0.0.1:${INTERNAL_PORT}/health/db || echo 'timeout')
+    echo \"  -> Health: \$HEALTH\"
 
-    WS_CODE=\$(curl -s -o /dev/null -w \"%{http_code}\" \
+    WS_STATUS=\$( (curl -s -i --connect-timeout 2 --max-time 3 \
       -H \"Connection: Upgrade\" \
       -H \"Upgrade: websocket\" \
       -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
       -H \"Sec-WebSocket-Version: 13\" \
-      http://127.0.0.1:${INTERNAL_PORT}/ws)
-    echo \"  -> Local WebSocket: HTTP \$WS_CODE (Expected 101)\"
+      http://127.0.0.1:${INTERNAL_PORT}/ws || true) | head -n 1 | tr -d '\r' )
+    WS_CODE=\$(echo \"\$WS_STATUS\" | awk '{print \$2}')
+    echo \"  -> Local WebSocket: HTTP \${WS_CODE:-N/A} (Expected 101)\"
 "
 
 echo "🌐 6. Checking public HTTPS endpoint..."
-if curl -s --fail --max-time 5 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
+if curl -s --fail --connect-timeout 3 --max-time 5 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
     echo "  ✓ https://${PUBLIC_DOMAIN} is online and healthy!"
 else
     echo "  ⚠️ Public check pending."
