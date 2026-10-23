@@ -52,9 +52,11 @@ rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 echo "🔐 4. Restarting ${SERVICE_NAME} and verifying endpoints..."
 ssh -o ConnectTimeout=10 "$SERVER" "
     set -e
+    systemctl stop '${SERVICE_NAME}' 2>/dev/null || true
+    pkill -9 -f '${APP_DIR}/${BINARY_NAME}' 2>/dev/null || true
     chmod 755 '${APP_DIR}/${BINARY_NAME}'
     chown -R www-data:www-data '${APP_DIR}'
-    systemctl restart '${SERVICE_NAME}'
+    systemctl start '${SERVICE_NAME}'
 
     echo '  ... Waiting for ${SERVICE_NAME} to initialize ...'
     HEALTH=''

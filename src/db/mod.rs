@@ -5,20 +5,24 @@ pub mod quizzes;
 pub use games::*;
 pub use quizzes::*;
 
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 use sqlx::{Pool, Sqlite};
 use std::str::FromStr;
+use std::time::Duration;
 
 pub type DbPool = Pool<Sqlite>;
 
 pub async fn init_db(database_url: &str) -> Result<DbPool, sqlx::Error> {
     let connection_options = SqliteConnectOptions::from_str(database_url)?
         .create_if_missing(true)
-        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .busy_timeout(Duration::from_secs(15))
         .foreign_keys(true);
 
     let pool = SqlitePoolOptions::new()
         .max_connections(10)
+        .acquire_timeout(Duration::from_secs(15))
         .connect_with(connection_options)
         .await?;
 
