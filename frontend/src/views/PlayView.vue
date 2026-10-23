@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useGameStore } from '@/stores/game';
 import { useBrandingStore, MAIN_BRAND_LOGO } from '@/stores/branding';
-import LobbyView from '@/components/game/LobbyView.vue';
+import PlayerLobbyView from '@/components/game/PlayerLobbyView.vue';
 import PlayerController from '@/components/game/PlayerController.vue';
 import AnswerRevealView from '@/components/game/AnswerRevealView.vue';
 import PodiumView from '@/components/game/PodiumView.vue';
@@ -14,33 +14,33 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 
 const route = useRoute();
-const router = useRouter();
 const gameStore = useGameStore();
 const brandingStore = useBrandingStore();
 
 const pin = ref((route.query.pin as string) || '');
+const queryNick = computed(() => ((route.query.nickname as string) || '').trim());
+const queryEmail = computed(() => ((route.query.email as string) || '').trim());
+
+// If nickname is in URL or already set in store, player is already logged in
+const isAlreadyLoggedIn = computed(() => {
+  return !!queryNick.value || !!gameStore.nickname;
+});
+
 const userIdentifier = ref(
   localStorage.getItem('ezsn_player_email') || localStorage.getItem('ezsn_player_name') || ''
 );
 const errorMessage = ref('');
 const isJoining = ref(false);
 
-const isConnectedAndJoined = computed(() => {
-  return gameStore.isConnected && !!gameStore.roomPin && !!gameStore.nickname;
-});
-
 onMounted(() => {
-  const queryPin = (route.query.pin as string) || '';
-  const queryNick = (route.query.nickname as string) || '';
-  const queryEmail = (route.query.email as string) || '';
-
-  if (queryPin) {
-    pin.value = queryPin.trim().replace(/\D/g, '');
+  const qPin = (route.query.pin as string) || '';
+  if (qPin) {
+    pin.value = qPin.trim().replace(/\D/g, '');
   }
 
-  // If both pin and nickname are already provided in the URL, auto-join immediately!
-  if (pin.value && queryNick) {
-    gameStore.joinAsPlayer(pin.value, queryNick, queryEmail || undefined);
+  // If already logged in via query params, auto-join immediately!
+  if (pin.value && queryNick.value) {
+    gameStore.joinAsPlayer(pin.value, queryNick.value, queryEmail.value || undefined);
   }
 });
 
@@ -68,7 +68,6 @@ function handleQuickJoin() {
 
   if (input.includes('@')) {
     finalEmail = input;
-    // Extract screen username from email prefix (e.g. 'alex' from 'alex@gmail.com')
     const prefix = input.split('@')[0];
     finalNickname = prefix.charAt(0).toUpperCase() + prefix.slice(1);
     localStorage.setItem('ezsn_player_email', finalEmail);
@@ -85,33 +84,49 @@ function handleQuickJoin() {
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] flex flex-col justify-between">
-    <!-- CASE 1: Active Game View when Connected and Joined -->
-    <template v-if="isConnectedAndJoined">
-      <main class="flex-1">
-        <LobbyView v-if="gameStore.gameState === 'LOBBY'" />
-        <PlayerController v-else-if="gameStore.gameState === 'QUESTION'" />
-        <AnswerRevealView v-else-if="gameStore.gameState === 'REVEAL'" />
-        <PodiumView v-else-if="gameStore.gameState === 'PODIUM'" />
-      </main>
+    <!-- CASE 1: Player is already logged in -->
+    <template v-if="isAlreadyLoggedIn">
+      <!-- 1a: Connected to WebSocket: Show active game screens -->
+      <template v-if="gameStore.isConnected">
+        <main class="flex-1">
+          <PlayerLobbyView v-if="gameStore.gameState === 'LOBBY'" />
+          <PlayerController v-else-if="gameStore.gameState === 'QUESTION'" />
+          <AnswerRevealView v-else-if="gameStore.gameState === 'REVEAL'" />
+          <PodiumView v-else-if="gameStore.gameState === 'PODIUM'" />
+        </main>
 
-      <!-- Bottom Player Status Bar -->
-      <footer
-        v-if="gameStore.gameState !== 'PODIUM'"
-        class="bg-slate-900/90 border-t border-slate-800 py-3 px-4 flex items-center justify-between text-xs font-bold text-slate-300 max-w-4xl mx-auto w-full"
-      >
-        <div class="flex items-center space-x-2">
-          <div class="w-2.5 h-2.5 rounded-full" :class="gameStore.isConnected ? 'bg-emerald-400' : 'bg-rose-400 animate-ping'" />
-          <span>{{ gameStore.nickname }}</span>
-        </div>
+        <!-- Bottom Player Status Bar -->
+        <footer
+          v-if="gameStore.gameState !== 'PODIUM'"
+          class="bg-slate-900/90 border-t border-slate-800 py-3 px-4 flex items-center justify-between text-xs font-bold text-slate-300 max-w-4xl mx-auto w-full"
+        >
+          <div class="flex items-center space-x-2">
+            <div class="w-2.5 h-2.5 rounded-full" :class="gameStore.isConnected ? 'bg-emerald-400' : 'bg-rose-400 animate-ping'" />
+            <span>{{ gameStore.nickname || queryNick }}</span>
+          </div>
 
-        <div class="flex items-center space-x-4">
-          <span>PIN: {{ gameStore.roomPin }}</span>
-          <span class="text-indigo-400 font-extrabold">{{ gameStore.score }} pts</span>
-        </div>
-      </footer>
+          <div class="flex items-center space-x-4">
+            <span>PIN: {{ gameStore.roomPin || pin }}</span>
+            <span class="text-indigo-400 font-extrabold">{{ gameStore.score }} pts</span>
+          </div>
+        </footer>
+      </template>
+
+      <!-- 1b: Connecting state -->
+      <template v-else>
+        <main class="flex-1 flex flex-col items-center justify-center py-24 space-y-4 text-center px-4">
+          <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <div class="space-y-1">
+            <h2 class="text-xl font-bold text-white">Connecting to Competition...</h2>
+            <p class="text-slate-400 text-sm">
+              Logging in as <span class="text-indigo-400 font-semibold">{{ queryNick || gameStore.nickname }}</span> for Room {{ pin }}
+            </p>
+          </div>
+        </main>
+      </template>
     </template>
 
-    <!-- CASE 2: QR Code Scanned / Direct Join Screen (Needs username or email) -->
+    <!-- CASE 2: Needs username/email input before joining (No QR code!) -->
     <template v-else>
       <main class="flex-1 flex flex-col justify-center items-center py-12 px-4 relative overflow-hidden">
         <!-- Ambient background glow -->
@@ -136,16 +151,15 @@ function handleQuickJoin() {
               />
             </div>
 
-            <div v-if="pin" class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider">
-              <i class="pi pi-qrcode" />
-              <span>Room PIN: {{ pin }} (Verified)</span>
+            <div v-if="pin" class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-black uppercase tracking-wider">
+              <span>Room PIN: {{ pin }}</span>
             </div>
 
             <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
               Join Competition
             </h1>
             <p class="text-slate-400 text-xs sm:text-sm">
-              Enter your email or username to jump directly into the quiz competition!
+              Enter your email or username to continue.
             </p>
           </div>
 
@@ -157,7 +171,7 @@ function handleQuickJoin() {
                   {{ errorMessage }}
                 </Message>
 
-                <!-- PIN input (only shown if not already present in URL) -->
+                <!-- PIN input (only shown if not in URL) -->
                 <div v-if="!pin" class="space-y-1.5">
                   <label for="roomPin" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
                     Game PIN
@@ -185,7 +199,7 @@ function handleQuickJoin() {
                     <InputText
                       id="identifier"
                       v-model="userIdentifier"
-                      placeholder="Enter username (e.g. Alex) or Email"
+                      placeholder="e.g. Alex or alex@example.com"
                       class="w-full pl-12 py-3.5 bg-slate-950/80 border-slate-700 focus:border-indigo-500 rounded-xl text-white font-bold text-base placeholder:text-slate-600 placeholder:text-sm"
                       maxlength="50"
                       autofocus

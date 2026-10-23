@@ -81,7 +81,7 @@ function copyPin() {
     </div>
 
     <!-- Big Host Lobby Card: QR Code + Game PIN side-by-side (Host Projector View) -->
-    <Card v-if="gameStore.role === 'host'" class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
+    <Card class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
       <template #content>
         <div class="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <!-- Left: Big Sharp QR Code for Mobile Cameras -->
@@ -136,33 +136,6 @@ function copyPin() {
             <h2 class="text-lg sm:text-xl font-bold text-slate-200">
               {{ gameStore.quizTitle || 'Live Multiplayer Quiz' }}
             </h2>
-          </div>
-        </div>
-      </template>
-    </Card>
-
-    <!-- Player Ready Card (Shown when joined on mobile) -->
-    <Card v-else class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl text-center py-8 px-4 sm:px-6">
-      <template #content>
-        <div class="max-w-md mx-auto space-y-6">
-          <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-3xl font-black text-slate-950 shadow-xl shadow-emerald-500/20">
-            ✓
-          </div>
-          <div class="space-y-2">
-            <span class="text-xs font-black uppercase tracking-widest text-emerald-400 block">Room {{ gameStore.roomPin }} • Connected</span>
-            <h1 class="text-2xl sm:text-3xl font-black text-white">You're in the Competition!</h1>
-            <p class="text-slate-300 text-sm font-semibold">
-              Playing as <span class="text-indigo-400 font-extrabold text-base">{{ gameStore.nickname }}</span>
-            </p>
-          </div>
-          <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
-            <div class="flex items-center justify-center space-x-2 text-indigo-400 font-bold text-sm">
-              <i class="pi pi-spin pi-spinner text-base" />
-              <span>Waiting for host to start the quiz...</span>
-            </div>
-            <p class="text-xs text-slate-500">
-              Keep your screen on! Tap the matching answer buttons quickly once questions appear.
-            </p>
           </div>
         </div>
       </template>

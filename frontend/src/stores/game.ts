@@ -231,6 +231,7 @@ export const useGameStore = defineStore('game', () => {
     roomPin.value = pin;
     nickname.value = name;
     role.value = 'player';
+    hostToken.value = '';
     if (email) {
       playerEmail.value = email.trim();
       localStorage.setItem('ezsn_player_email', email.trim());
@@ -289,6 +290,8 @@ export const useGameStore = defineStore('game', () => {
     gameState.value = 'LOBBY';
     selectedOptionId.value = null;
     answerSubmitted.value = false;
+    role.value = null;
+    hostToken.value = '';
   }
 
   return {
@@ -298,6 +301,7 @@ export const useGameStore = defineStore('game', () => {
     quizTitle,
     playerId,
     nickname,
+    playerEmail,
     score,
     streak,
     rank,
