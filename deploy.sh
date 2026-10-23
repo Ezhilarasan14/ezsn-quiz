@@ -112,11 +112,25 @@ WS_CODE=$(echo "$WS_STATUS" | awk '{print $2}')
 echo "  -> Local WebSocket: HTTP ${WS_CODE:-N/A} (Expected 101)"
 EOF
 
-echo "🌐 5. Checking public HTTPS endpoint..."
+echo "🌐 5. Checking public endpoints..."
 if curl -s --fail --connect-timeout 3 --max-time 5 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
-    echo "  ✓ https://${PUBLIC_DOMAIN} is online and healthy!"
+    echo "  ✓ HTTPS: https://${PUBLIC_DOMAIN} is online and healthy!"
 else
-    echo "  ⚠️ Public check pending."
+    echo "  ⚠️ Public HTTPS check pending."
+fi
+
+PUB_WS=$( (curl -s -i --connect-timeout 3 --max-time 3 \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  "https://${PUBLIC_DOMAIN}/ws" 2>/dev/null || true) | head -n 1 | tr -d '\r' )
+PUB_WS_CODE=$(echo "$PUB_WS" | awk '{print $2}')
+
+if [ "$PUB_WS_CODE" = "101" ]; then
+    echo "  ✓ WebSockets: wss://${PUBLIC_DOMAIN}/ws is online (HTTP 101)!"
+else
+    echo "  ⚠️ WebSockets returned HTTP ${PUB_WS_CODE:-failed}! Run './deploy.sh --setup' to update Nginx."
 fi
 
 echo "=========================================================="
