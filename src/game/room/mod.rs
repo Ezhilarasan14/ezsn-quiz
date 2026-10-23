@@ -41,6 +41,17 @@ impl GameRoom {
         }
     }
 
+    pub fn get_theme(&self) -> ThemeConfig {
+        ThemeConfig {
+            logo_url: self.quiz.theme_logo_url.clone().filter(|s| !s.is_empty()),
+            primary_color: self.quiz.theme_primary_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#6366f1".to_string())),
+            secondary_color: self.quiz.theme_secondary_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#ec4899".to_string())),
+            background_color: self.quiz.theme_bg_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#0f172a".to_string())),
+            button_color: self.quiz.theme_btn_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#3b82f6".to_string())),
+            org_name: Some("EZSN Quiz".to_string()),
+        }
+    }
+
     pub fn is_abandoned(&self) -> bool {
         let inactive_duration = self.last_activity.elapsed();
         if self.host_tx.is_none() && inactive_duration > Duration::from_secs(900) {

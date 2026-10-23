@@ -3,6 +3,7 @@ use actix_web::{middleware, web, App, HttpServer};
 use std::sync::Arc;
 
 use ezsn_quiz::api;
+use ezsn_quiz::auth;
 use ezsn_quiz::config::Config;
 use ezsn_quiz::db;
 use ezsn_quiz::game::RoomManager;
@@ -26,6 +27,10 @@ async fn main() -> std::io::Result<()> {
             std::process::exit(1);
         }
     };
+
+    if let Err(e) = auth::ensure_default_admin(&pool).await {
+        log::warn!("Could not verify default admin account: {}", e);
+    }
 
     // Initialize in-memory Game Room Manager
     let manager = Arc::new(RoomManager::new(pool.clone()));

@@ -11,6 +11,12 @@ pub async fn list_quizzes(pool: &DbPool) -> Result<Vec<QuizSummary>, sqlx::Error
             q.title,
             q.description,
             COUNT(qu.id) as question_count,
+            q.organization_id,
+            q.theme_logo_url,
+            q.theme_primary_color,
+            q.theme_secondary_color,
+            q.theme_bg_color,
+            q.theme_btn_color,
             q.created_at,
             q.updated_at
         FROM quizzes q
@@ -28,7 +34,7 @@ pub async fn list_quizzes(pool: &DbPool) -> Result<Vec<QuizSummary>, sqlx::Error
 pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizDetail>, sqlx::Error> {
     let quiz_row = sqlx::query(
         r#"
-        SELECT id, title, description, created_at, updated_at
+        SELECT id, title, description, organization_id, theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, created_at, updated_at
         FROM quizzes
         WHERE id = ?
         "#,
@@ -45,6 +51,12 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
     let id: String = row.get("id");
     let title: String = row.get("title");
     let description: Option<String> = row.get("description");
+    let organization_id: Option<String> = row.get("organization_id");
+    let theme_logo_url: Option<String> = row.get("theme_logo_url");
+    let theme_primary_color: Option<String> = row.get("theme_primary_color");
+    let theme_secondary_color: Option<String> = row.get("theme_secondary_color");
+    let theme_bg_color: Option<String> = row.get("theme_bg_color");
+    let theme_btn_color: Option<String> = row.get("theme_btn_color");
     let created_at: chrono::NaiveDateTime = row.get("created_at");
     let updated_at: chrono::NaiveDateTime = row.get("updated_at");
 
@@ -89,6 +101,12 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
         id,
         title,
         description,
+        organization_id,
+        theme_logo_url,
+        theme_primary_color,
+        theme_secondary_color,
+        theme_bg_color,
+        theme_btn_color,
         questions: question_details,
         created_at,
         updated_at,
@@ -101,13 +119,23 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
 
     sqlx::query(
         r#"
-        INSERT INTO quizzes (id, title, description, created_at, updated_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO quizzes (
+            id, title, description, organization_id, 
+            theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, 
+            created_at, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         "#,
     )
     .bind(&quiz_id)
     .bind(&req.title)
     .bind(&req.description)
+    .bind(&req.organization_id)
+    .bind(&req.theme_logo_url)
+    .bind(&req.theme_primary_color)
+    .bind(&req.theme_secondary_color)
+    .bind(&req.theme_bg_color)
+    .bind(&req.theme_btn_color)
     .execute(&mut *tx)
     .await?;
 
@@ -161,12 +189,20 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
     let res = sqlx::query(
         r#"
         UPDATE quizzes
-        SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+        SET title = ?, description = ?, organization_id = ?, 
+            theme_logo_url = ?, theme_primary_color = ?, theme_secondary_color = ?, theme_bg_color = ?, theme_btn_color = ?,
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
         "#,
     )
     .bind(&req.title)
     .bind(&req.description)
+    .bind(&req.organization_id)
+    .bind(&req.theme_logo_url)
+    .bind(&req.theme_primary_color)
+    .bind(&req.theme_secondary_color)
+    .bind(&req.theme_bg_color)
+    .bind(&req.theme_btn_color)
     .bind(quiz_id)
     .execute(&mut *tx)
     .await?;
@@ -243,6 +279,12 @@ pub async fn duplicate_quiz(pool: &DbPool, quiz_id: &str) -> Result<Option<Strin
     let create_req = CreateQuizRequest {
         title: new_title,
         description: original.description,
+        organization_id: original.organization_id,
+        theme_logo_url: original.theme_logo_url,
+        theme_primary_color: original.theme_primary_color,
+        theme_secondary_color: original.theme_secondary_color,
+        theme_bg_color: original.theme_bg_color,
+        theme_btn_color: original.theme_btn_color,
         questions: original
             .questions
             .into_iter()

@@ -30,6 +30,7 @@ async fn test_high_concurrency_100_players() {
                     ],
                 },
             ],
+            ..Default::default()
         },
     )
     .await

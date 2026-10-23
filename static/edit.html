@@ -18,6 +18,7 @@
       <h1 class="text-xl font-black text-white">Quiz Creator & Manager</h1>
     </div>
     <div class="flex items-center gap-3">
+      <a href="/admin" class="btn-secondary py-2 px-4 text-xs font-bold">Admin Portal</a>
       <button id="btn-new-quiz" class="btn-primary py-2 px-5 text-sm font-bold flex items-center gap-2">
         <span>+ New Quiz</span>
       </button>
@@ -72,6 +73,47 @@
         </div>
       </div>
 
+      <!-- Quiz Branding & Theme -->
+      <div class="glass-panel p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-black text-white">Quiz-Specific Theme (Optional)</h3>
+            <p class="text-xs text-white/60">Customize branding for this specific quiz, or leave unselected to inherit organization default</p>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="quiz-theme-enable" class="w-4 h-4 rounded accent-indigo-500">
+            <span class="text-xs font-bold text-white/80">Custom Theme</span>
+          </label>
+        </div>
+
+        <div id="quiz-theme-controls" class="space-y-4 hidden pt-3 border-t border-white/10">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-white/70 mb-1">Custom Logo (URL or Upload)</label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="quiz-theme-logo" placeholder="/uploads/..." class="glass-input text-xs">
+                <label class="btn-secondary text-xs py-2 px-3 cursor-pointer shrink-0">
+                  Upload
+                  <input type="file" id="quiz-theme-file" accept="image/*" class="hidden">
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-white/70 mb-1">Primary Color</label>
+              <input type="color" id="quiz-theme-primary" value="#6366f1" class="w-full h-9 rounded cursor-pointer bg-transparent">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-white/70 mb-1">Secondary Color</label>
+              <input type="color" id="quiz-theme-secondary" value="#ec4899" class="w-full h-9 rounded cursor-pointer bg-transparent">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-white/70 mb-1">Background Color</label>
+              <input type="color" id="quiz-theme-bg" value="#0f172a" class="w-full h-9 rounded cursor-pointer bg-transparent">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Questions List -->
       <div class="space-y-4">
         <div class="flex items-center justify-between">
@@ -117,6 +159,7 @@
   <script src="/js/audio.js"></script>
   <script src="/js/confetti.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/js/branding.js"></script>
   <script src="/js/editor.js"></script>
 </body>
 </html>

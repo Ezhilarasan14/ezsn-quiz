@@ -74,6 +74,10 @@ class QuizWebSocket {
         const type = msg.type;
         const payload = msg.payload;
 
+        if (type === "theme_config" && payload && payload.theme && window.applyBrandTheme) {
+          window.applyBrandTheme(payload.theme);
+        }
+
         if (this.handlers.has(type)) {
           this.handlers.get(type).forEach((fn) => fn(payload));
         }

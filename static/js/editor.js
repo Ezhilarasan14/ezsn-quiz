@@ -135,6 +135,23 @@ document.addEventListener("DOMContentLoaded", () => {
       quizTitleInput.value = quiz.title;
       quizDescInput.value = quiz.description || "";
 
+      // Theme fields
+      const hasCustom = !!(quiz.theme_primary_color || quiz.theme_logo_url);
+      const themeEnable = document.getElementById("quiz-theme-enable");
+      const themeControls = document.getElementById("quiz-theme-controls");
+      if (themeEnable) {
+        themeEnable.checked = hasCustom;
+        if (hasCustom) {
+          themeControls.classList.remove("hidden");
+          document.getElementById("quiz-theme-logo").value = quiz.theme_logo_url || "";
+          document.getElementById("quiz-theme-primary").value = quiz.theme_primary_color || "#6366f1";
+          document.getElementById("quiz-theme-secondary").value = quiz.theme_secondary_color || "#ec4899";
+          document.getElementById("quiz-theme-bg").value = quiz.theme_bg_color || "#0f172a";
+        } else {
+          themeControls.classList.add("hidden");
+        }
+      }
+
       questions = quiz.questions.map((q) => ({
         question_text: q.question_text,
         time_limit_sec: q.time_limit_sec,
@@ -158,6 +175,14 @@ document.addEventListener("DOMContentLoaded", () => {
     editorPageTitle.textContent = "Create New Quiz";
     quizTitleInput.value = "";
     quizDescInput.value = "";
+
+    const themeEnable = document.getElementById("quiz-theme-enable");
+    const themeControls = document.getElementById("quiz-theme-controls");
+    if (themeEnable) {
+      themeEnable.checked = false;
+      themeControls.classList.add("hidden");
+      document.getElementById("quiz-theme-logo").value = "";
+    }
 
     // Default with 1 starter question
     questions = [
@@ -385,9 +410,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    const themeEnable = document.getElementById("quiz-theme-enable");
+    const isCustom = themeEnable ? themeEnable.checked : false;
+
     const payload = {
       title,
       description: description || null,
+      theme_logo_url: isCustom ? document.getElementById("quiz-theme-logo").value.trim() || null : null,
+      theme_primary_color: isCustom ? document.getElementById("quiz-theme-primary").value : null,
+      theme_secondary_color: isCustom ? document.getElementById("quiz-theme-secondary").value : null,
+      theme_bg_color: isCustom ? document.getElementById("quiz-theme-bg").value : null,
+      theme_btn_color: isCustom ? "#3b82f6" : null,
       questions: questions.map((q) => ({
         question_text: q.question_text.trim(),
         time_limit_sec: q.time_limit_sec,
@@ -469,6 +502,44 @@ document.addEventListener("DOMContentLoaded", () => {
     viewLibrary.classList.remove("hidden");
     loadLibrary();
   });
+
+  const themeFileInput = document.getElementById("quiz-theme-file");
+  if (themeFileInput) {
+    themeFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: file.name, data: evt.target.result }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            document.getElementById("quiz-theme-logo").value = data.url;
+            showToast("Quiz logo uploaded!");
+          }
+        } catch (err) {
+          showToast("Failed to upload logo", true);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const themeEnableCheckbox = document.getElementById("quiz-theme-enable");
+  const themeControlsDiv = document.getElementById("quiz-theme-controls");
+  if (themeEnableCheckbox && themeControlsDiv) {
+    themeEnableCheckbox.addEventListener("change", () => {
+      if (themeEnableCheckbox.checked) {
+        themeControlsDiv.classList.remove("hidden");
+      } else {
+        themeControlsDiv.classList.add("hidden");
+      }
+    });
+  }
 
   function escapeHtml(str) {
     if (!str) return "";

@@ -1,8 +1,10 @@
 pub mod games;
 pub mod models;
+pub mod organizations;
 pub mod quizzes;
 
 pub use games::*;
+pub use organizations::*;
 pub use quizzes::*;
 
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};

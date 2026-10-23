@@ -49,6 +49,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
                     ],
                 },
             ],
+            ..Default::default()
         },
     )
     .await

@@ -18,6 +18,10 @@ impl GameRoom {
             is_reconnect: false,
         });
 
+        let _ = tx.send(ServerMessage::ThemeConfig {
+            theme: self.get_theme(),
+        });
+
         self.send_host_current_state();
     }
 
@@ -43,6 +47,10 @@ impl GameRoom {
                     player_id: Some(pid.clone()),
                     nickname: Some(nick),
                     is_reconnect: true,
+                });
+
+                let _ = tx.send(ServerMessage::ThemeConfig {
+                    theme: self.get_theme(),
                 });
 
                 self.send_player_current_state(&pid);
@@ -97,6 +105,10 @@ impl GameRoom {
             player_id: Some(new_id.clone()),
             nickname: Some(trimmed_name.to_string()),
             is_reconnect: false,
+        });
+
+        let _ = tx.send(ServerMessage::ThemeConfig {
+            theme: self.get_theme(),
         });
 
         // Notify host and other players

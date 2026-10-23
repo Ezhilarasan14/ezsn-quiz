@@ -18,6 +18,8 @@ pub async fn serve_static(req: HttpRequest) -> impl Responder {
         path = "edit.html".to_string();
     } else if path == "history" {
         path = "history.html".to_string();
+    } else if path == "admin" {
+        path = "admin.html".to_string();
     }
 
     match Asset::get(&path) {

@@ -12,11 +12,12 @@
   <!-- Header / Navigation -->
   <header class="w-full px-6 py-5 flex items-center justify-between border-b border-white/10 bg-black/20 backdrop-blur-md">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-red-500 flex items-center justify-center font-black text-2xl shadow-lg">
-        ⚡
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-red-500 flex items-center justify-center font-black text-2xl shadow-lg overflow-hidden">
+        <img src="" alt="Logo" class="brand-logo-img w-full h-full object-contain hidden">
+        <span class="brand-logo-default">⚡</span>
       </div>
       <div>
-        <h1 class="text-2xl font-black tracking-tight text-white">EZSN Quiz</h1>
+        <h1 class="text-2xl font-black tracking-tight text-white brand-org-name">EZSN Quiz</h1>
         <p class="text-xs text-white/60 font-medium">Rust-Powered Real-Time Multiplayer</p>
       </div>
     </div>
@@ -26,6 +27,9 @@
       </button>
       <a href="/edit" class="btn-secondary text-sm py-2 px-4">Quiz Creator</a>
       <a href="/history" class="btn-secondary text-sm py-2 px-4">Past Results</a>
+      <a href="/admin" class="btn-primary text-sm py-2 px-4 flex items-center gap-1.5 shadow-lg shadow-indigo-500/20">
+        <span>⚙️</span> <span>Admin</span>
+      </a>
     </div>
   </header>
 
@@ -119,6 +123,7 @@
   <script src="/js/audio.js"></script>
   <script src="/js/confetti.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/js/branding.js"></script>
   <script src="/js/home.js"></script>
 </body>
 </html>

@@ -55,6 +55,16 @@ pub struct PodiumEntry {
     pub total_answered: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ThemeConfig {
+    pub logo_url: Option<String>,
+    pub primary_color: Option<String>,
+    pub secondary_color: Option<String>,
+    pub background_color: Option<String>,
+    pub button_color: Option<String>,
+    pub org_name: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct PlayerAnswer {
     pub option_id: String,

@@ -41,6 +41,7 @@ async fn test_database_crud_and_history() {
                 ],
             },
         ],
+        ..Default::default()
     };
 
     let quiz_id = db::create_quiz(&pool, create_req).await.expect("Failed to create quiz");
@@ -83,6 +84,7 @@ async fn test_database_crud_and_history() {
                 ],
             },
         ],
+        ..Default::default()
     };
     let updated = db::update_quiz(&pool, &quiz_id, update_req).await.expect("Failed to update");
     assert!(updated);
