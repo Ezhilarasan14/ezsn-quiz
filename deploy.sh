@@ -58,10 +58,19 @@ APP_DIR="$2"
 BINARY_NAME="$3"
 INTERNAL_PORT="$4"
 
-echo "  -> Stopping old service..."
+echo "  -> Stopping old service and killing any rogue instances..."
 systemctl stop "$SERVICE_NAME" 2>/dev/null || true
-pkill -9 -f "${APP_DIR}/${BINARY_NAME}" 2>/dev/null || true
+pkill -9 ezsn_quiz 2>/dev/null || true
+pkill -9 -f ezsn_quiz 2>/dev/null || true
+killall -9 ezsn_quiz 2>/dev/null || true
+fuser -k -9 "${APP_DIR}/quiz.db"* 2>/dev/null || true
 systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+
+# If quiz.db is empty (0 bytes) or has orphaned lock files, clean it up
+if [ -f "${APP_DIR}/quiz.db" ] && [ ! -s "${APP_DIR}/quiz.db" ]; then
+    echo "  -> Cleaning up 0-byte database and stale lock files..."
+    rm -f "${APP_DIR}/quiz.db"*
+fi
 
 echo "  -> Setting permissions on ${APP_DIR}..."
 chmod 755 "${APP_DIR}/${BINARY_NAME}"
