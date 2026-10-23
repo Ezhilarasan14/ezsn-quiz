@@ -36,11 +36,12 @@ pub async fn handle_player_connect(
     pin: &str,
     nickname: &str,
     pid_opt: Option<String>,
+    email: Option<String>,
     tx: mpsc::UnboundedSender<ServerMessage>,
 ) -> Option<(Arc<RwLock<GameRoom>>, String)> {
     if let Some(room_arc) = manager.get_room(pin).await {
         let mut room = room_arc.write().await;
-        match room.register_player(pid_opt, nickname.to_string(), tx.clone()) {
+        match room.register_player(pid_opt, nickname.to_string(), email, tx.clone()) {
             Ok(pid) => {
                 drop(room);
                 Some((room_arc, pid))

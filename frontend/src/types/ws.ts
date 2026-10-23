@@ -24,7 +24,7 @@ export interface LeaderboardEntry {
 // Client -> Server messages
 export type ClientMessage =
   | { type: 'host_connect'; payload: { pin: string; token: string } }
-  | { type: 'player_connect'; payload: { pin: string; nickname: string; player_id?: string } }
+  | { type: 'player_connect'; payload: { pin: string; nickname: string; player_id?: string; email?: string } }
   | { type: 'host_start_game'; payload?: Record<string, never> }
   | { type: 'host_next_question'; payload?: Record<string, never> }
   | { type: 'host_kick_player'; payload: { player_id: string } }

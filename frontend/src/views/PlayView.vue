@@ -14,13 +14,14 @@ const gameStore = useGameStore();
 onMounted(() => {
   const pin = (route.query.pin as string) || '';
   const nickname = (route.query.nickname as string) || '';
+  const email = (route.query.email as string) || '';
 
   if (!pin || !nickname) {
     router.replace('/');
     return;
   }
 
-  gameStore.joinAsPlayer(pin, nickname);
+  gameStore.joinAsPlayer(pin, nickname, email);
 });
 
 onUnmounted(() => {

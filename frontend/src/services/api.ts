@@ -97,7 +97,8 @@ export const api = {
       body: JSON.stringify({ data: dataUrl, filename }),
     }),
 
-  // History
+  // History & Player Analytics
   getHistory: () => request<any[]>('/api/history'),
   getQuizHistory: (quizId: string) => request<any[]>(`/api/quizzes/${quizId}/history`),
+  getPlayerStats: (email: string) => request<any>(`/api/players/${encodeURIComponent(email)}/stats`),
 };

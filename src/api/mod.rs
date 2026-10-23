@@ -33,9 +33,10 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             // Rooms
             .route("/rooms", web::post().to(rooms::create_room))
             .route("/rooms/{pin}", web::get().to(rooms::get_room_status))
-            // History
+            // History & Player Analytics
             .route("/history", web::get().to(history::list_history))
-            .route("/history/{game_id}", web::get().to(history::get_game_results)),
+            .route("/history/{game_id}", web::get().to(history::get_game_results))
+            .route("/players/{email}/stats", web::get().to(history::get_player_stats)),
     )
     .route("/health", web::get().to(health::health_check))
     .route("/health/db", web::get().to(health::health_db))

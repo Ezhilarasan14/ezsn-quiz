@@ -50,7 +50,7 @@ async fn test_high_concurrency_100_players() {
         let (tx, _rx) = mpsc::unbounded_channel::<ServerMessage>();
         let mut room = room_arc.write().await;
         let pid = room
-            .register_player(None, format!("Player_{:03}", i), tx)
+            .register_player(None, format!("Player_{:03}", i), None, tx)
             .expect("Registration should succeed");
         player_ids.push(pid);
     }

@@ -77,6 +77,7 @@ pub struct PlayerAnswer {
 pub struct PlayerSession {
     pub id: String,
     pub nickname: String,
+    pub email: Option<String>,
     pub score: i64,
     pub streak: u32,
     pub correct_count: usize,

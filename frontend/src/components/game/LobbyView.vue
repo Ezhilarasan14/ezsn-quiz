@@ -1,13 +1,47 @@
 <script setup lang="ts">
+import { ref, watch, onMounted } from 'vue';
 import { useGameStore } from '@/stores/game';
 import { useBrandingStore, MAIN_BRAND_LOGO } from '@/stores/branding';
-import { ref } from 'vue';
+import QRCode from 'qrcode';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 
 const gameStore = useGameStore();
 const brandingStore = useBrandingStore();
 const copied = ref(false);
+const qrCodeUrl = ref('');
+
+onMounted(() => {
+  if (gameStore.roomPin) {
+    generateQr(gameStore.roomPin);
+  }
+});
+
+watch(
+  () => gameStore.roomPin,
+  (pin) => {
+    if (pin) {
+      generateQr(pin);
+    }
+  }
+);
+
+async function generateQr(pin: string) {
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://quiz.ezsnapps.in';
+    const joinUrl = `${origin}/?pin=${pin}`;
+    qrCodeUrl.value = await QRCode.toDataURL(joinUrl, {
+      width: 360,
+      margin: 1.5,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+    });
+  } catch (err) {
+    console.error('Failed to generate QR code:', err);
+  }
+}
 
 function copyPin() {
   navigator.clipboard.writeText(gameStore.roomPin);
@@ -46,32 +80,63 @@ function copyPin() {
       </div>
     </div>
 
-    <!-- Big PIN Display Card -->
-    <Card class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl text-center">
+    <!-- Big Host Lobby Card: QR Code + Game PIN side-by-side -->
+    <Card class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
       <template #content>
-        <div class="py-6 space-y-4">
-          <p class="text-sm font-semibold uppercase tracking-wider text-slate-400">
-            Join at <span class="text-indigo-400 underline font-bold">quiz.ezsnapps.in</span> with Game PIN:
-          </p>
+        <div class="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <!-- Left: Big Sharp QR Code for Mobile Cameras -->
+          <div class="flex flex-col items-center justify-center p-5 bg-slate-950/70 rounded-2xl border border-slate-800/80 shadow-inner">
+            <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase tracking-wider mb-3 border border-emerald-500/20">
+              <i class="pi pi-camera" />
+              <span>Scan to join on mobile</span>
+            </div>
 
-          <div class="flex items-center justify-center space-x-4">
-            <h1 class="text-6xl sm:text-8xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-pink-400 to-purple-400">
-              {{ gameStore.roomPin || '------' }}
-            </h1>
-            <Button
-              :icon="copied ? 'pi pi-check' : 'pi pi-copy'"
-              :class="copied ? 'p-button-success' : 'p-button-secondary'"
-              rounded
-              text
-              size="large"
-              @click="copyPin"
-              title="Copy PIN"
-            />
+            <div class="bg-white p-3 rounded-2xl shadow-2xl">
+              <img
+                v-if="qrCodeUrl"
+                :src="qrCodeUrl"
+                alt="Scan to join quiz"
+                class="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
+              />
+              <div v-else class="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center text-slate-400 text-xs">
+                Generating QR...
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 font-semibold mt-3 text-center">
+              Point your camera to join instantly with PIN pre-filled
+            </p>
           </div>
 
-          <h2 class="text-xl sm:text-2xl font-bold text-slate-200">
-            {{ gameStore.quizTitle || 'Live Multiplayer Quiz' }}
-          </h2>
+          <!-- Right: Game PIN & Browser Join Option -->
+          <div class="text-center md:text-left space-y-4">
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Or join on your browser at:
+              <span class="text-indigo-400 font-black block text-sm mt-0.5">quiz.ezsnapps.in</span>
+            </p>
+
+            <div>
+              <span class="text-xs font-extrabold text-slate-400 uppercase tracking-widest block">Game PIN</span>
+              <div class="flex items-center justify-center md:justify-start space-x-3 mt-1">
+                <h1 class="text-5xl sm:text-7xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-pink-400 to-purple-400">
+                  {{ gameStore.roomPin || '------' }}
+                </h1>
+                <Button
+                  :icon="copied ? 'pi pi-check' : 'pi pi-copy'"
+                  :class="copied ? 'p-button-success' : 'p-button-secondary'"
+                  rounded
+                  text
+                  size="large"
+                  @click="copyPin"
+                  title="Copy PIN"
+                />
+              </div>
+            </div>
+
+            <h2 class="text-lg sm:text-xl font-bold text-slate-200">
+              {{ gameStore.quizTitle || 'Live Multiplayer Quiz' }}
+            </h2>
+          </div>
         </div>
       </template>
     </Card>
@@ -142,7 +207,7 @@ function copyPin() {
     <!-- Empty state -->
     <div v-else class="text-center py-12 text-slate-500">
       <i class="pi pi-user-plus text-4xl mb-3 text-slate-600 animate-bounce" />
-      <p class="font-medium text-base">Waiting for players to join with the PIN above...</p>
+      <p class="font-medium text-base">Waiting for players to join with the PIN or QR above...</p>
     </div>
   </div>
 </template>

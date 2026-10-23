@@ -21,3 +21,15 @@ pub async fn get_game_results(pool: web::Data<DbPool>, path: web::Path<String>) 
         }
     }
 }
+
+pub async fn get_player_stats(pool: web::Data<DbPool>, path: web::Path<String>) -> impl Responder {
+    let email = path.into_inner();
+    match db::get_player_stats(pool.get_ref(), &email).await {
+        Ok(Some(stats)) => HttpResponse::Ok().json(stats),
+        Ok(None) => HttpResponse::NotFound().json(serde_json::json!({ "error": "No stats found for this email" })),
+        Err(e) => {
+            log::error!("Failed to fetch player stats for {}: {}", email, e);
+            HttpResponse::InternalServerError().json(serde_json::json!({ "error": "Failed to fetch player stats" }))
+        }
+    }
+}

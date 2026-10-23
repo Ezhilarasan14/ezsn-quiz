@@ -86,7 +86,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
     let (p1_tx, _p1_rx) = mpsc::unbounded_channel::<ServerMessage>();
     let p1_id = {
         let mut room = room_arc.write().await;
-        room.register_player(None, "Alice".to_string(), p1_tx).expect("Alice should join")
+        room.register_player(None, "Alice".to_string(), Some("alice@test.com".to_string()), p1_tx).expect("Alice should join")
     };
     assert!(!p1_id.is_empty());
 
@@ -94,7 +94,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
     let (p2_tx, _p2_rx) = mpsc::unbounded_channel::<ServerMessage>();
     let p2_id = {
         let mut room = room_arc.write().await;
-        room.register_player(None, "Bob".to_string(), p2_tx).expect("Bob should join")
+        room.register_player(None, "Bob".to_string(), Some("bob@test.com".to_string()), p2_tx).expect("Bob should join")
     };
     assert!(!p2_id.is_empty());
 
@@ -102,7 +102,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
     {
         let (dup_tx, _) = mpsc::unbounded_channel::<ServerMessage>();
         let mut room = room_arc.write().await;
-        let dup_res = room.register_player(None, "alice".to_string(), dup_tx);
+        let dup_res = room.register_player(None, "alice".to_string(), None, dup_tx);
         assert!(dup_res.is_err(), "Duplicate nickname should be rejected");
     }
 
@@ -115,7 +115,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
         // Reconnect Alice
         let (reconnect_tx, mut reconnect_rx) = mpsc::unbounded_channel::<ServerMessage>();
         let reconnected_id = room
-            .register_player(Some(p1_id.clone()), "Alice".to_string(), reconnect_tx)
+            .register_player(Some(p1_id.clone()), "Alice".to_string(), Some("alice@test.com".to_string()), reconnect_tx)
             .expect("Alice should reconnect");
         assert_eq!(reconnected_id, p1_id);
         assert_eq!(room.active_player_count(), 2);

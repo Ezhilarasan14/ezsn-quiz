@@ -29,16 +29,21 @@ impl GameRoom {
         &mut self,
         player_id_opt: Option<String>,
         nickname: String,
+        email: Option<String>,
         tx: mpsc::UnboundedSender<ServerMessage>,
     ) -> Result<String, String> {
         self.last_activity = Instant::now();
+        let clean_email = email.map(|e| e.trim().to_lowercase()).filter(|e| !e.is_empty());
 
-        // Check if this is a reconnect
+        // Check if this is a reconnect by player_id
         if let Some(pid) = player_id_opt {
             if let Some(player) = self.players.get_mut(&pid) {
                 player.is_connected = true;
                 player.tx = Some(tx.clone());
                 player.last_seen = Instant::now();
+                if clean_email.is_some() && player.email.is_none() {
+                    player.email = clean_email.clone();
+                }
 
                 let nick = player.nickname.clone();
                 let _ = tx.send(ServerMessage::Connected {
@@ -56,6 +61,36 @@ impl GameRoom {
                 self.send_player_current_state(&pid);
                 self.broadcast_lobby_update();
                 return Ok(pid);
+            }
+        }
+
+        // Check if this is a reconnect by email
+        if let Some(ref em) = clean_email {
+            for (pid, player) in self.players.iter_mut() {
+                if player.email.as_ref() == Some(em) {
+                    player.is_connected = true;
+                    player.tx = Some(tx.clone());
+                    player.last_seen = Instant::now();
+                    player.nickname = nickname.trim().to_string();
+
+                    let nick = player.nickname.clone();
+                    let pid_clone = pid.clone();
+                    let _ = tx.send(ServerMessage::Connected {
+                        role: "player".to_string(),
+                        pin: self.pin.clone(),
+                        player_id: Some(pid_clone.clone()),
+                        nickname: Some(nick),
+                        is_reconnect: true,
+                    });
+
+                    let _ = tx.send(ServerMessage::ThemeConfig {
+                        theme: self.get_theme(),
+                    });
+
+                    self.send_player_current_state(&pid_clone);
+                    self.broadcast_lobby_update();
+                    return Ok(pid_clone);
+                }
             }
         }
 
@@ -87,6 +122,7 @@ impl GameRoom {
         let session = PlayerSession {
             id: new_id.clone(),
             nickname: trimmed_name.to_string(),
+            email: clean_email,
             score: 0,
             streak: 0,
             correct_count: 0,

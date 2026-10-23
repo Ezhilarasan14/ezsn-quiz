@@ -317,6 +317,7 @@ impl GameRoom {
                                 FinalPlayerResult {
                                     player_id: r.player_id.clone(),
                                     nickname: r.nickname.clone(),
+                                    email: p.and_then(|pl| pl.email.clone()),
                                     total_score: r.score,
                                     final_rank: r.rank as i64,
                                     correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),
@@ -403,6 +404,7 @@ impl GameRoom {
                                 FinalPlayerResult {
                                     player_id: r.player_id.clone(),
                                     nickname: r.nickname.clone(),
+                                    email: p.and_then(|pl| pl.email.clone()),
                                     total_score: r.score,
                                     final_rank: r.rank as i64,
                                     correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),

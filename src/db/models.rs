@@ -165,8 +165,36 @@ pub struct GamePlayerResultRow {
     pub game_id: String,
     pub player_id: String,
     pub nickname: String,
+    pub email: Option<String>,
     pub total_score: i64,
     pub final_rank: i64,
     pub correct_count: i64,
     pub total_answered: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct PlayerHistoryItem {
+    pub game_id: String,
+    pub quiz_title: String,
+    pub room_pin: String,
+    pub score: i64,
+    pub rank: i64,
+    pub total_players: i64,
+    pub correct_count: i64,
+    pub total_answered: i64,
+    pub played_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerStats {
+    pub email: String,
+    pub nickname: String,
+    pub quizzes_played: i64,
+    pub total_score: i64,
+    pub wins_count: i64,
+    pub podium_count: i64,
+    pub total_correct: i64,
+    pub total_answered: i64,
+    pub avg_accuracy: f64,
+    pub history: Vec<PlayerHistoryItem>,
 }

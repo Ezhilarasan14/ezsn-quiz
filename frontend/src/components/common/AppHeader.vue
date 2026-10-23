@@ -23,13 +23,8 @@ function toggleSound() {
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <!-- Main Brand Logo (Always Permanent: EZSN) -->
       <router-link to="/" class="flex items-center space-x-3 group">
-        <img
-          :src="MAIN_BRAND_LOGO"
-          alt="EZSN Quiz Platform Logo"
-          class="h-8 sm:h-9 w-auto object-contain filter drop-shadow group-hover:scale-105 transition-transform"
-        />
         <span class="text-xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors">
-          EZSN Quiz
+          ezsnapps
         </span>
       </router-link>
 

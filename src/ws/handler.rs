@@ -51,8 +51,8 @@ pub async fn ws_route(
                                         current_room = Some(room);
                                     }
                                 }
-                                Ok(ClientMessage::PlayerConnect { pin, nickname, player_id: pid_opt }) => {
-                                    if let Some((room, pid)) = handle_player_connect(&manager, &pin, &nickname, pid_opt, tx.clone()).await {
+                                Ok(ClientMessage::PlayerConnect { pin, nickname, player_id: pid_opt, email }) => {
+                                    if let Some((room, pid)) = handle_player_connect(&manager, &pin, &nickname, pid_opt, email, tx.clone()).await {
                                         is_host = false;
                                         player_id = Some(pid);
                                         current_room = Some(room);

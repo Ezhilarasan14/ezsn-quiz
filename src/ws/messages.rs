@@ -20,6 +20,8 @@ pub enum ClientMessage {
         pin: String,
         nickname: String,
         player_id: Option<String>,
+        #[serde(default)]
+        email: Option<String>,
     },
     HostStartGame,
     HostNextQuestion,
@@ -65,13 +67,17 @@ impl<'de> Deserialize<'de> for ClientMessage {
                 struct Payload {
                     pin: String,
                     nickname: String,
+                    #[serde(default)]
                     player_id: Option<String>,
+                    #[serde(default)]
+                    email: Option<String>,
                 }
                 let p: Payload = serde_json::from_value(raw.payload).map_err(serde::de::Error::custom)?;
                 Ok(ClientMessage::PlayerConnect {
                     pin: p.pin,
                     nickname: p.nickname,
                     player_id: p.player_id,
+                    email: p.email,
                 })
             }
             "host_start_game" => Ok(ClientMessage::HostStartGame),

@@ -3,6 +3,7 @@ export type GameState = 'LOBBY' | 'QUESTION' | 'REVEAL' | 'LEADERBOARD' | 'PODIU
 export interface Player {
   id: string;
   nickname: string;
+  email?: string;
   score: number;
   streak: number;
   rank?: number;
@@ -34,5 +35,31 @@ export interface PodiumEntry {
   rank: number;
   id: string;
   nickname: string;
+  email?: string;
   score: number;
+}
+
+export interface PlayerHistoryItem {
+  game_id: string;
+  quiz_title: string;
+  room_pin: string;
+  score: number;
+  rank: number;
+  total_players: number;
+  correct_count: number;
+  total_answered: number;
+  played_at: string;
+}
+
+export interface PlayerStats {
+  email: string;
+  nickname: string;
+  quizzes_played: number;
+  total_score: number;
+  wins_count: number;
+  podium_count: number;
+  total_correct: number;
+  total_answered: number;
+  avg_accuracy: number;
+  history: PlayerHistoryItem[];
 }

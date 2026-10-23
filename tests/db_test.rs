@@ -98,6 +98,7 @@ async fn test_database_crud_and_history() {
         FinalPlayerResult {
             player_id: "p1".to_string(),
             nickname: "FerrisChampion".to_string(),
+            email: Some("ferris@example.com".to_string()),
             total_score: 3800,
             final_rank: 1,
             correct_count: 4,
@@ -106,6 +107,7 @@ async fn test_database_crud_and_history() {
         FinalPlayerResult {
             player_id: "p2".to_string(),
             nickname: "CrabbyPlayer".to_string(),
+            email: Some("crabby@example.com".to_string()),
             total_score: 2900,
             final_rank: 2,
             correct_count: 3,
@@ -127,6 +129,16 @@ async fn test_database_crud_and_history() {
     assert_eq!(player_results.len(), 2);
     assert_eq!(player_results[0].nickname, "FerrisChampion");
     assert_eq!(player_results[0].final_rank, 1);
+    assert_eq!(player_results[0].email.as_deref(), Some("ferris@example.com"));
+
+    // Verify player cumulative stats
+    let stats = db::get_player_stats(&pool, "ferris@example.com").await.expect("Failed to get player stats");
+    assert!(stats.is_some());
+    let s = stats.unwrap();
+    assert_eq!(s.email, "ferris@example.com");
+    assert_eq!(s.nickname, "FerrisChampion");
+    assert!(s.quizzes_played >= 1);
+    assert!(s.wins_count >= 1);
 
     // 7. Delete quiz
     let deleted = db::delete_quiz(&pool, &quiz_id).await.expect("Failed to delete quiz");

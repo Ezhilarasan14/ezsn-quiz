@@ -1,22 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { MAIN_BRAND_LOGO } from '@/stores/branding';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 
+const route = useRoute();
 const router = useRouter();
 
 const pin = ref('');
-const nickname = ref('');
+const nickname = ref(localStorage.getItem('ezsn_player_name') || '');
+const email = ref(localStorage.getItem('ezsn_player_email') || '');
+const isQrScanned = ref(false);
 const errorMessage = ref('');
+
+onMounted(() => {
+  const queryPin = (route.query.pin as string) || '';
+  if (queryPin) {
+    pin.value = queryPin.trim().replace(/\D/g, '');
+    isQrScanned.value = true;
+  }
+});
 
 function handleJoin() {
   errorMessage.value = '';
   const cleanPin = pin.value.trim().replace(/\D/g, '');
   const cleanNick = nickname.value.trim();
+  const cleanEmail = email.value.trim();
 
   if (!cleanPin || cleanPin.length < 4) {
     errorMessage.value = 'Please enter a valid 6-digit Game PIN';
@@ -27,9 +39,19 @@ function handleJoin() {
     return;
   }
 
+  // Persist locally for recurring quizzes
+  localStorage.setItem('ezsn_player_name', cleanNick);
+  if (cleanEmail) {
+    localStorage.setItem('ezsn_player_email', cleanEmail);
+  }
+
   router.push({
     path: '/play',
-    query: { pin: cleanPin, nickname: cleanNick },
+    query: {
+      pin: cleanPin,
+      nickname: cleanNick,
+      ...(cleanEmail ? { email: cleanEmail } : {}),
+    },
   });
 }
 </script>
@@ -60,20 +82,38 @@ function handleJoin() {
           EZSN Quiz
         </h1>
         <p class="text-slate-400 text-sm font-medium">
-          Enter your Game PIN and nickname to jump into the competition!
+          {{ isQrScanned ? 'QR Code detected! Enter your name to jump into the competition.' : 'Enter your Game PIN and name to jump into the competition!' }}
         </p>
       </div>
 
       <!-- Join Card -->
       <Card class="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-xl">
         <template #content>
-          <form @submit.prevent="handleJoin" class="space-y-5 p-2">
+          <form @submit.prevent="handleJoin" class="space-y-4 p-2">
             <Message v-if="errorMessage" severity="error" :closable="false" class="rounded-xl">
               {{ errorMessage }}
             </Message>
 
-            <!-- Game PIN input -->
-            <div class="space-y-1.5">
+            <!-- QR Code Join Banner if pre-filled -->
+            <div v-if="isQrScanned" class="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/40 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <i class="pi pi-qrcode text-emerald-400 text-xl" />
+                <div>
+                  <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 block">QR Code Joined</span>
+                  <span class="font-mono font-black text-white text-base tracking-wider">PIN: {{ pin }}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="isQrScanned = false"
+                class="text-xs text-slate-400 hover:text-white underline"
+              >
+                Change PIN
+              </button>
+            </div>
+
+            <!-- Game PIN input (Shown if not locked by QR code) -->
+            <div v-if="!isQrScanned" class="space-y-1.5">
               <label for="pin" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
                 Game PIN
               </label>
@@ -93,18 +133,41 @@ function handleJoin() {
             <!-- Nickname input -->
             <div class="space-y-1.5">
               <label for="nickname" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Nickname
+                Your Nickname <span class="text-rose-400">*</span>
               </label>
               <div class="relative">
                 <i class="pi pi-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg" />
                 <InputText
                   id="nickname"
                   v-model="nickname"
-                  placeholder="Enter your game handle"
+                  placeholder="Enter your screen name (e.g. Alex)"
                   class="w-full pl-12 py-3 bg-slate-950/60 border-slate-800 focus:border-indigo-500 rounded-xl text-white font-bold placeholder:text-slate-600"
                   maxlength="20"
+                  required
                 />
               </div>
+            </div>
+
+            <!-- Email ID (for persistent history & rankings) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label for="email" class="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Email ID <span class="text-[10px] text-indigo-400 font-semibold normal-case">(Saves your quiz history)</span>
+                </label>
+              </div>
+              <div class="relative">
+                <i class="pi pi-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg" />
+                <InputText
+                  id="email"
+                  v-model="email"
+                  type="email"
+                  placeholder="alex@example.com (optional)"
+                  class="w-full pl-12 py-2.5 bg-slate-950/60 border-slate-800 focus:border-indigo-500 rounded-xl text-white text-sm placeholder:text-slate-600"
+                />
+              </div>
+              <p class="text-[10px] text-slate-500 px-1">
+                Allows organizations and you to track your cumulative points, badges, and accuracy across quizzes.
+              </p>
             </div>
 
             <!-- Submit Button -->
@@ -114,7 +177,7 @@ function handleJoin() {
               icon="pi pi-arrow-right"
               iconPos="right"
               size="large"
-              class="w-full bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 border-none font-black text-white py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-transform active:scale-98"
+              class="w-full bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 border-none font-black text-white py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-transform active:scale-98 mt-2"
             />
           </form>
         </template>
@@ -128,8 +191,8 @@ function handleJoin() {
         </router-link>
         <span class="text-slate-700">•</span>
         <router-link to="/history" class="hover:text-indigo-400 flex items-center space-x-1.5 transition-colors">
-          <i class="pi pi-trophy" />
-          <span>Past Leaderboards</span>
+          <i class="pi pi-chart-line" />
+          <span>Player Stats & History</span>
         </router-link>
       </div>
     </div>

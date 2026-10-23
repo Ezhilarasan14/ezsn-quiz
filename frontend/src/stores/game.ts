@@ -19,6 +19,7 @@ export const useGameStore = defineStore('game', () => {
   // Player state
   const playerId = ref<string>('');
   const nickname = ref<string>('');
+  const playerEmail = ref<string>(localStorage.getItem('ezsn_player_email') || '');
   const score = ref<number>(0);
   const streak = ref<number>(0);
   const rank = ref<number>(0);
@@ -65,7 +66,12 @@ export const useGameStore = defineStore('game', () => {
         if (role.value === 'player' && roomPin.value && nickname.value) {
           wsClient.send({
             type: 'player_connect',
-            payload: { pin: roomPin.value, nickname: nickname.value, player_id: playerId.value || undefined },
+            payload: {
+              pin: roomPin.value,
+              nickname: nickname.value,
+              player_id: playerId.value || undefined,
+              email: playerEmail.value || undefined,
+            },
           });
         } else if (role.value === 'host' && roomPin.value && hostToken.value) {
           wsClient.send({
@@ -221,14 +227,23 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // Client Actions
-  function joinAsPlayer(pin: string, name: string) {
+  function joinAsPlayer(pin: string, name: string, email?: string) {
     roomPin.value = pin;
     nickname.value = name;
     role.value = 'player';
+    if (email) {
+      playerEmail.value = email.trim();
+      localStorage.setItem('ezsn_player_email', email.trim());
+    }
     initWebSocket();
     wsClient.send({
       type: 'player_connect',
-      payload: { pin, nickname: name, player_id: playerId.value || undefined },
+      payload: {
+        pin,
+        nickname: name,
+        player_id: playerId.value || undefined,
+        email: playerEmail.value || undefined,
+      },
     });
   }
 

@@ -6,6 +6,7 @@ use uuid::Uuid;
 pub struct FinalPlayerResult {
     pub player_id: String,
     pub nickname: String,
+    pub email: Option<String>,
     pub total_score: i64,
     pub final_rank: i64,
     pub correct_count: i64,
@@ -83,14 +84,15 @@ pub async fn save_game_results(
         let result_id = Uuid::new_v4().to_string();
         sqlx::query(
             r#"
-            INSERT INTO game_player_results (id, game_id, player_id, nickname, total_score, final_rank, correct_count, total_answered)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO game_player_results (id, game_id, player_id, nickname, email, total_score, final_rank, correct_count, total_answered)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#,
         )
         .bind(&result_id)
         .bind(game_id)
         .bind(&res.player_id)
         .bind(&res.nickname)
+        .bind(&res.email)
         .bind(res.total_score)
         .bind(res.final_rank)
         .bind(res.correct_count)
@@ -132,7 +134,7 @@ pub async fn list_game_history(pool: &DbPool) -> Result<Vec<GameHistoryItem>, sq
 pub async fn get_game_results(pool: &DbPool, game_id: &str) -> Result<Vec<GamePlayerResultRow>, sqlx::Error> {
     let rows = sqlx::query_as::<_, GamePlayerResultRow>(
         r#"
-        SELECT id, game_id, player_id, nickname, total_score, final_rank, correct_count, total_answered
+        SELECT id, game_id, player_id, nickname, email, total_score, final_rank, correct_count, total_answered
         FROM game_player_results
         WHERE game_id = $1
         ORDER BY final_rank ASC
@@ -143,4 +145,77 @@ pub async fn get_game_results(pool: &DbPool, game_id: &str) -> Result<Vec<GamePl
     .await?;
 
     Ok(rows)
+}
+
+pub async fn get_player_stats(pool: &DbPool, email: &str) -> Result<Option<PlayerStats>, sqlx::Error> {
+    let clean_email = email.trim().to_lowercase();
+    let history = sqlx::query_as::<_, PlayerHistoryItem>(
+        r#"
+        SELECT 
+            r.game_id,
+            q.title as quiz_title,
+            g.room_pin,
+            r.total_score as score,
+            r.final_rank as rank,
+            g.total_players,
+            r.correct_count,
+            r.total_answered,
+            g.created_at as played_at
+        FROM game_player_results r
+        JOIN games g ON r.game_id = g.id
+        JOIN quizzes q ON g.quiz_id = q.id
+        WHERE LOWER(r.email) = $1
+        ORDER BY g.created_at DESC
+        LIMIT 50
+        "#,
+    )
+    .bind(&clean_email)
+    .fetch_all(pool)
+    .await?;
+
+    if history.is_empty() {
+        return Ok(None);
+    }
+
+    let most_recent_nick = sqlx::query_scalar::<_, String>(
+        "SELECT nickname FROM game_player_results WHERE LOWER(email) = $1 ORDER BY created_at DESC LIMIT 1"
+    )
+    .bind(&clean_email)
+    .fetch_optional(pool)
+    .await?
+    .unwrap_or_else(|| "Player".to_string());
+
+    let quizzes_played = history.len() as i64;
+    let mut total_score = 0;
+    let mut wins_count = 0;
+    let mut podium_count = 0;
+    let mut total_correct = 0;
+    let mut total_answered = 0;
+
+    for h in &history {
+        total_score += h.score;
+        if h.rank == 1 { wins_count += 1; }
+        if h.rank <= 3 { podium_count += 1; }
+        total_correct += h.correct_count;
+        total_answered += h.total_answered;
+    }
+
+    let avg_accuracy = if total_answered > 0 {
+        ((total_correct as f64) / (total_answered as f64) * 100.0).round()
+    } else {
+        0.0
+    };
+
+    Ok(Some(PlayerStats {
+        email: clean_email,
+        nickname: most_recent_nick,
+        quizzes_played,
+        total_score,
+        wins_count,
+        podium_count,
+        total_correct,
+        total_answered,
+        avg_accuracy,
+        history,
+    }))
 }
