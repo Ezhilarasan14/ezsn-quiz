@@ -50,41 +50,58 @@ echo "🚀 3. Uploading application binary..."
 rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 
 echo "🔐 4. Restarting ${SERVICE_NAME} and verifying endpoints..."
-ssh -o ConnectTimeout=10 "$SERVER" "
-    set -e
-    systemctl stop '${SERVICE_NAME}' 2>/dev/null || true
-    pkill -9 -f '${APP_DIR}/${BINARY_NAME}' 2>/dev/null || true
-    chmod 755 '${APP_DIR}/${BINARY_NAME}'
-    chown -R www-data:www-data '${APP_DIR}'
-    systemctl start '${SERVICE_NAME}'
+ssh -o ConnectTimeout=10 "$SERVER" "bash -s -- '$SERVICE_NAME' '$APP_DIR' '$BINARY_NAME' '$INTERNAL_PORT'" << 'EOF'
+set -Eeuo pipefail
 
-    echo '  ... Waiting for ${SERVICE_NAME} to initialize ...'
-    HEALTH=''
-    for i in 1 2 3 4 5; do
-        sleep 1
-        HEALTH=\$(curl -s --connect-timeout 1 --max-time 2 http://127.0.0.1:${INTERNAL_PORT}/health/db 2>/dev/null || true)
-        if [[ -n \"\$HEALTH\" ]]; then
-            break
-        fi
-    done
+SERVICE_NAME="$1"
+APP_DIR="$2"
+BINARY_NAME="$3"
+INTERNAL_PORT="$4"
 
-    if [[ -z \"\$HEALTH\" ]]; then
-        echo '❌ ${SERVICE_NAME} failed to respond on port ${INTERNAL_PORT}! Recent logs:'
-        journalctl -u '${SERVICE_NAME}' -n 35 --no-pager
-        exit 1
+echo "  -> Stopping old service..."
+systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+pkill -9 -f "${APP_DIR}/${BINARY_NAME}" 2>/dev/null || true
+systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+
+echo "  -> Setting permissions on ${APP_DIR}..."
+chmod 755 "${APP_DIR}/${BINARY_NAME}"
+chown -R www-data:www-data "$APP_DIR"
+
+echo "  -> Starting ${SERVICE_NAME}..."
+if ! systemctl start "$SERVICE_NAME"; then
+    echo "❌ systemctl start failed! Service status and logs:"
+    systemctl status "$SERVICE_NAME" --no-pager || true
+    journalctl -u "$SERVICE_NAME" -n 35 --no-pager || true
+    exit 1
+fi
+
+echo "  -> Waiting for ${SERVICE_NAME} to initialize..."
+HEALTH=""
+for i in 1 2 3 4 5; do
+    sleep 1
+    HEALTH=$(curl -s --connect-timeout 1 --max-time 2 "http://127.0.0.1:${INTERNAL_PORT}/health/db" 2>/dev/null || true)
+    if [ -n "$HEALTH" ]; then
+        break
     fi
+done
 
-    echo \"  -> Health: \$HEALTH\"
+if [ -z "$HEALTH" ]; then
+    echo "❌ ${SERVICE_NAME} failed to respond on port ${INTERNAL_PORT}! Recent logs:"
+    journalctl -u "$SERVICE_NAME" -n 40 --no-pager
+    exit 1
+fi
 
-    WS_STATUS=\$( (curl -s -i --connect-timeout 2 --max-time 3 \
-      -H \"Connection: Upgrade\" \
-      -H \"Upgrade: websocket\" \
-      -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
-      -H \"Sec-WebSocket-Version: 13\" \
-      http://127.0.0.1:${INTERNAL_PORT}/ws 2>/dev/null || true) | head -n 1 | tr -d '\r' )
-    WS_CODE=\$(echo \"\$WS_STATUS\" | awk '{print \$2}')
-    echo \"  -> Local WebSocket: HTTP \${WS_CODE:-N/A} (Expected 101)\"
-"
+echo "  -> Health: $HEALTH"
+
+WS_STATUS=$( (curl -s -i --connect-timeout 2 --max-time 3 \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  "http://127.0.0.1:${INTERNAL_PORT}/ws" 2>/dev/null || true) | head -n 1 | tr -d '\r' )
+WS_CODE=$(echo "$WS_STATUS" | awk '{print $2}')
+echo "  -> Local WebSocket: HTTP ${WS_CODE:-N/A} (Expected 101)"
+EOF
 
 echo "🌐 5. Checking public HTTPS endpoint..."
 if curl -s --fail --connect-timeout 3 --max-time 5 "https://${PUBLIC_DOMAIN}/health/db" > /dev/null 2>&1; then
