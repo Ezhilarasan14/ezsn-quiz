@@ -15,12 +15,17 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let config = Config::from_env();
-    log::info!("Starting ezsn-quiz server on {}:{}", config.host, config.port);
+    log::info!("Starting ezsn-quiz server configuration: host={}, port={}, db={}", config.host, config.port, config.database_url);
 
-    // Initialize database pool and run migrations
-    let pool = db::init_db(&config.database_url)
-        .await
-        .expect("Failed to initialize SQLite database");
+    // Initialize database pool and run migrations with detailed error logging
+    let pool = match db::init_db(&config.database_url).await {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("CRITICAL: Failed to initialize SQLite database at '{}': {}", config.database_url, e);
+            eprintln!("CRITICAL: Failed to initialize SQLite database at '{}': {}", config.database_url, e);
+            std::process::exit(1);
+        }
+    };
 
     // Initialize in-memory Game Room Manager
     let manager = Arc::new(RoomManager::new(pool.clone()));
@@ -28,7 +33,7 @@ async fn main() -> std::io::Result<()> {
     let bind_addr = format!("{}:{}", config.host, config.port);
     log::info!("Server listening on http://{}", bind_addr);
 
-    HttpServer::new(move || {
+    let server = match HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
@@ -47,7 +52,14 @@ async fn main() -> std::io::Result<()> {
             // Static files and SPA fallback
             .default_service(web::to(static_files::serve_static))
     })
-    .bind(&bind_addr)?
-    .run()
-    .await
+    .bind(&bind_addr) {
+        Ok(s) => s,
+        Err(e) => {
+            log::error!("CRITICAL: Failed to bind server to '{}': {}", bind_addr, e);
+            eprintln!("CRITICAL: Failed to bind server to '{}': {}", bind_addr, e);
+            std::process::exit(1);
+        }
+    };
+
+    server.run().await
 }

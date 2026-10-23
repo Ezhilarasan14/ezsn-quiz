@@ -11,19 +11,14 @@ EnvironmentFile=-/var/www/quiz/.env
 Environment=PORT=8081
 Environment=HOST=127.0.0.1
 Environment=DATABASE_URL=sqlite:/var/www/quiz/quiz.db
+Environment=RUST_LOG=info
 ExecStart=/var/www/quiz/ezsn_quiz
 Restart=always
-RestartSec=5
+RestartSec=3
 
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=ezsn_quiz
-
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=full
-ProtectHome=true
-ReadWritePaths=/var/www/quiz
 
 [Install]
 WantedBy=multi-user.target

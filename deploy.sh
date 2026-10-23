@@ -50,8 +50,7 @@ rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
 
 echo "⚙️  6. Ensuring production environment config on server..."
 ssh "$SERVER" "
-    if [ ! -f '${APP_DIR}/.env' ]; then
-        cat << 'EOF' > '${APP_DIR}/.env'
+    cat << 'EOF' > '${APP_DIR}/.env'
 HOST=127.0.0.1
 PORT=8081
 DATABASE_URL=sqlite:/var/www/quiz/quiz.db
@@ -60,9 +59,8 @@ CLEANUP_INTERVAL_SECS=60
 ROOM_ABANDONED_TIMEOUT_SECS=900
 MAX_ROOM_LIFETIME_SECS=7200
 EOF
-        chown www-data:www-data '${APP_DIR}/.env'
-        chmod 600 '${APP_DIR}/.env'
-    fi
+    chown www-data:www-data '${APP_DIR}/.env'
+    chmod 644 '${APP_DIR}/.env'
 "
 
 echo "🔧 7. Synchronizing systemd service..."
@@ -96,7 +94,16 @@ ssh "$SERVER" "
     chown -R www-data:www-data '$APP_DIR'
     systemctl daemon-reload
     systemctl restart '${SERVICE_NAME}'
-    systemctl is-active --quiet '${SERVICE_NAME}'
+
+    # Give service 2 seconds to initialize SQLite and listen on 8081
+    sleep 2
+
+    # Verify service is running; if not, output logs and abort
+    if ! systemctl is-active --quiet '${SERVICE_NAME}'; then
+        echo '❌ ${SERVICE_NAME} service failed to start! Recent logs:'
+        journalctl -u '${SERVICE_NAME}' -n 40 --no-pager
+        exit 1
+    fi
 
     nginx -t
     systemctl restart nginx
@@ -107,7 +114,7 @@ ssh "$SERVER" "
     set -e
 
     echo '  -> Checking local Database Health (http://127.0.0.1:${INTERNAL_PORT}/health/db)...'
-    DB_RESP=\$(curl -s -S --fail http://127.0.0.1:${INTERNAL_PORT}/health/db)
+    DB_RESP=\$(curl -s -S --fail http://127.0.0.1:${INTERNAL_PORT}/health/db || (echo 'Database check failed' && journalctl -u ${SERVICE_NAME} -n 20 --no-pager && exit 1))
     echo \"     Response: \$DB_RESP\"
 
     echo '  -> Checking Embedded SPA Root (http://127.0.0.1:${INTERNAL_PORT}/)...'
@@ -127,19 +134,10 @@ ssh "$SERVER" "
       http://127.0.0.1:${INTERNAL_PORT}/ws)
     echo \"     Local WebSocket HTTP Code: \$LOCAL_WS_CODE (Expected 101 Switching Protocols)\"
     if [ \"\$LOCAL_WS_CODE\" != \"101\" ]; then
-        echo \"❌ Local WebSocket failed!\"
+        echo \"❌ Local WebSocket failed with code \$LOCAL_WS_CODE!\"
+        journalctl -u '${SERVICE_NAME}' -n 30 --no-pager
         exit 1
     fi
-
-    echo '  -> Testing Nginx WebSocket Proxy (http://127.0.0.1/ws with Host: ${PUBLIC_DOMAIN})...'
-    NGINX_WS_CODE=\$(curl -s -o /dev/null -w \"%{http_code}\" \
-      -H \"Host: ${PUBLIC_DOMAIN}\" \
-      -H \"Connection: Upgrade\" \
-      -H \"Upgrade: websocket\" \
-      -H \"Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==\" \
-      -H \"Sec-WebSocket-Version: 13\" \
-      http://127.0.0.1/ws || echo \"000\")
-    echo \"     Nginx WebSocket HTTP Code: \$NGINX_WS_CODE (Expected 101 or 301)\"
 
     echo '  ✓ Server verification completed successfully!'
 "

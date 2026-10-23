@@ -1,4 +1,5 @@
 use ezsn_quiz::db::{self, models::*, FinalPlayerResult};
+use std::str::FromStr;
 
 #[tokio::test]
 async fn test_database_crud_and_history() {
@@ -6,6 +7,14 @@ async fn test_database_crud_and_history() {
     let pool = db::init_db("sqlite::memory:")
         .await
         .expect("Failed to init in-memory db");
+
+    // Test path parsing
+    let opt1 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:quiz.db");
+    assert!(opt1.is_ok());
+    let opt2 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:/var/www/quiz/quiz.db");
+    assert!(opt2.is_ok());
+    let opt3 = sqlx::sqlite::SqliteConnectOptions::from_str("sqlite:///var/www/quiz/quiz.db");
+    assert!(opt3.is_ok());
 
     // 1. Initial seed should have 2 default quizzes
     let initial_quizzes = db::list_quizzes(&pool).await.expect("Failed to list quizzes");
