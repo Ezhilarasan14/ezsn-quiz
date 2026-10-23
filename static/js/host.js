@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Timer reference
   let questionTimerInterval = null;
   let activeQuestionOptions = [];
+  let currentQuestionIndex = 1;
+  let totalQuestionsCount = 1;
 
   const ws = new QuizWebSocket();
   ws.connect(() => {
@@ -124,6 +126,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ws.on("question_intro", (data) => {
     switchView(viewIntro);
+    currentQuestionIndex = data.question_index;
+    totalQuestionsCount = data.total_questions;
     document.getElementById("intro-q-counter").textContent = `Question ${data.question_index} of ${data.total_questions}`;
     document.getElementById("intro-q-text").textContent = data.question_text;
 
@@ -145,6 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
   ws.on("question_active", (data) => {
     switchView(viewQuestion);
     activeQuestionOptions = data.options;
+    currentQuestionIndex = data.question_index;
+    totalQuestionsCount = data.total_questions;
 
     document.getElementById("active-q-counter").textContent = `Question ${data.question_index}/${data.total_questions}`;
     document.getElementById("active-q-text").textContent = data.question_text;
@@ -196,6 +202,15 @@ document.addEventListener("DOMContentLoaded", () => {
   ws.on("question_result", (data) => {
     if (questionTimerInterval) clearInterval(questionTimerInterval);
     switchView(viewResult);
+
+    const nextBtnLabel = document.getElementById("btn-result-next-label");
+    if (nextBtnLabel) {
+      if (currentQuestionIndex < totalQuestionsCount) {
+        nextBtnLabel.textContent = "Next Question";
+      } else {
+        nextBtnLabel.textContent = "Final Scoreboard";
+      }
+    }
 
     const colorClasses = ["btn-red", "btn-blue", "btn-yellow", "btn-green"];
     const shapes = ["shape-triangle", "shape-diamond", "shape-circle", "shape-square"];

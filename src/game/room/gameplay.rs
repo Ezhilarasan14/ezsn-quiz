@@ -233,51 +233,102 @@ impl GameRoom {
                 }
                 RoomState::QuestionResult { question_index, .. } => {
                     let q_idx = *question_index;
-                    room.timer_token += 1;
+                    let next_q = q_idx + 1;
 
+                    // Update player rank histories and rankings in the background
                     let mut player_list: Vec<_> = room.players.values_mut().collect();
                     player_list.sort_by(|a, b| b.score.cmp(&a.score));
 
-                    let mut rankings = Vec::new();
                     for (rank_idx, player) in player_list.into_iter().enumerate() {
                         let rank = rank_idx + 1;
-                        let prev_rank = player.rank_history.last().copied().unwrap_or(rank);
-                        let rank_change = (prev_rank as i32) - (rank as i32);
                         player.rank_history.push(rank);
-
-                        rankings.push(LeaderboardEntry {
-                            player_id: player.id.clone(),
-                            nickname: player.nickname.clone(),
-                            score: player.score,
-                            rank,
-                            rank_change,
-                            streak: player.streak,
-                            is_connected: player.is_connected,
-                        });
                     }
 
-                    room.state = RoomState::Leaderboard {
-                        question_index: q_idx,
-                        rankings: rankings.clone(),
-                    };
+                    if next_q < room.quiz.questions.len() {
+                        // Advance directly to the next question without intermediate scoreboard
+                        room.timer_token += 1;
+                        let token = room.timer_token;
+                        drop(room);
+                        GameRoom::start_question_intro(room_arc, next_q, token);
+                    } else {
+                        // Last question completed: Show the final scoreboard & podium!
+                        room.timer_token += 1;
+                        let mut sorted_players: Vec<_> = room.players.values().collect();
+                        sorted_players.sort_by(|a, b| b.score.cmp(&a.score));
 
-                    if let Some(ref h_tx) = room.host_tx {
-                        let _ = h_tx.send(ServerMessage::LeaderboardUpdate {
-                            rankings: rankings.clone(),
-                            my_rank: None,
-                            my_score: None,
-                        });
-                    }
+                        let podium: Vec<PodiumEntry> = sorted_players
+                            .iter()
+                            .take(3)
+                            .enumerate()
+                            .map(|(idx, p)| PodiumEntry {
+                                player_id: p.id.clone(),
+                                nickname: p.nickname.clone(),
+                                score: p.score,
+                                rank: idx + 1,
+                                correct_count: p.correct_count,
+                                total_answered: p.total_answered,
+                            })
+                            .collect();
 
-                    for (pid, player) in &room.players {
-                        if let Some(ref tx) = player.tx {
-                            let my_entry = rankings.iter().find(|r| r.player_id == *pid);
-                            let _ = tx.send(ServerMessage::LeaderboardUpdate {
-                                rankings: rankings.clone(),
-                                my_rank: my_entry.map(|e| e.rank),
-                                my_score: Some(player.score),
+                        let full_results: Vec<LeaderboardEntry> = sorted_players
+                            .iter()
+                            .enumerate()
+                            .map(|(idx, p)| LeaderboardEntry {
+                                player_id: p.id.clone(),
+                                nickname: p.nickname.clone(),
+                                score: p.score,
+                                rank: idx + 1,
+                                rank_change: 0,
+                                streak: p.streak,
+                                is_connected: p.is_connected,
+                            })
+                            .collect();
+
+                        room.state = RoomState::Podium {
+                            podium: podium.clone(),
+                            full_results: full_results.clone(),
+                        };
+
+                        if let Some(ref h_tx) = room.host_tx {
+                            let _ = h_tx.send(ServerMessage::Podium {
+                                podium: podium.clone(),
+                                full_results: full_results.clone(),
+                                my_rank: None,
                             });
                         }
+
+                        for (pid, player) in &room.players {
+                            if let Some(ref tx) = player.tx {
+                                let my_rank = full_results.iter().position(|r| r.player_id == *pid).map(|i| i + 1);
+                                let _ = tx.send(ServerMessage::Podium {
+                                    podium: podium.clone(),
+                                    full_results: full_results.clone(),
+                                    my_rank,
+                                });
+                            }
+                        }
+
+                        let game_id = room.game_id.clone();
+                        let total_players = room.players.len() as i64;
+                        let db_results: Vec<FinalPlayerResult> = full_results
+                            .iter()
+                            .map(|r| {
+                                let p = room.players.get(&r.player_id);
+                                FinalPlayerResult {
+                                    player_id: r.player_id.clone(),
+                                    nickname: r.nickname.clone(),
+                                    total_score: r.score,
+                                    final_rank: r.rank as i64,
+                                    correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),
+                                    total_answered: p.map(|pl| pl.total_answered as i64).unwrap_or(0),
+                                }
+                            })
+                            .collect();
+
+                        tokio::spawn(async move {
+                            let _ = db::update_game_status(&db_pool, &game_id, "completed", total_players).await;
+                            let _ = db::save_game_results(&db_pool, &game_id, &db_results).await;
+                        });
                     }
                 }
                 RoomState::Leaderboard { question_index, .. } => {
