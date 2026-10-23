@@ -71,6 +71,7 @@ if [ ! -s "${APP_DIR}/quiz.db" ]; then
 fi
 
 echo "  -> Setting permissions on ${APP_DIR}..."
+mkdir -p "${APP_DIR}/uploads"
 chmod 755 "${APP_DIR}/${BINARY_NAME}"
 chown -R www-data:www-data "$APP_DIR"
 
