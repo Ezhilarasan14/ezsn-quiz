@@ -130,7 +130,22 @@ PUB_WS_CODE=$(echo "$PUB_WS" | awk '{print $2}')
 if [ "$PUB_WS_CODE" = "101" ]; then
     echo "  ✓ WebSockets: wss://${PUBLIC_DOMAIN}/ws is online (HTTP 101)!"
 else
-    echo "  ⚠️ WebSockets returned HTTP ${PUB_WS_CODE:-failed}! Run './deploy.sh --setup' to update Nginx."
+    echo "  ⚠️ Public WebSockets returned HTTP ${PUB_WS_CODE:-failed}."
+    echo "  ⚙️ Auto-updating Nginx with WebSocket configuration..."
+    rsync -avz "${PROJECT_DIR}/deployment/quiz.conf" "${SERVER}:/etc/nginx/sites-available/quiz.conf"
+    ssh -o ConnectTimeout=10 "$SERVER" 'bash -s' << 'EOF'
+set -Eeuo pipefail
+mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+for old in /etc/nginx/sites-enabled/*quiz* /etc/nginx/conf.d/*quiz*; do
+    if [ -e "$old" ] && [ "$old" != "/etc/nginx/sites-enabled/quiz.conf" ]; then
+        rm -f "$old"
+    fi
+done
+ln -sf /etc/nginx/sites-available/quiz.conf /etc/nginx/sites-enabled/quiz.conf
+nginx -t
+systemctl reload nginx
+echo "  ✓ Nginx reloaded successfully with WebSocket proxying."
+EOF
 fi
 
 echo "=========================================================="
