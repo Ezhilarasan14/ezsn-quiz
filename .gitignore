@@ -9,4 +9,4 @@ quiz.db-wal
 node_modules
 frontend/node_modules
 uploads/
-
+frontend/dist

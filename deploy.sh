@@ -52,8 +52,15 @@ if [[ ! -f "$BINARY_PATH" ]]; then
 fi
 ls -lh "$BINARY_PATH"
 
-echo "🚀 3. Uploading application binary..."
+echo "🚀 3. Uploading application binary and migrations..."
 rsync -avzP "$BINARY_PATH" "${SERVER}:${APP_DIR}/${BINARY_NAME}"
+if [[ -d "${PROJECT_DIR}/migrations" ]]; then
+    rsync -avzP "${PROJECT_DIR}/migrations/" "${SERVER}:${APP_DIR}/migrations/"
+fi
+if [[ -f "${PROJECT_DIR}/deployment/quiz.service" ]]; then
+    echo "🔧 Syncing systemd service configuration..."
+    rsync -avz "${PROJECT_DIR}/deployment/quiz.service" "${SERVER}:/etc/systemd/system/${SERVICE_NAME}.service"
+fi
 
 echo "🔐 4. Restarting ${SERVICE_NAME} and verifying endpoints..."
 ssh -o ConnectTimeout=10 "$SERVER" "bash -s -- '$SERVICE_NAME' '$APP_DIR' '$BINARY_NAME' '$INTERNAL_PORT'" << 'EOF'
@@ -109,6 +116,14 @@ if id postgres >/dev/null 2>&1; then
             echo "  -> Ensuring PostgreSQL permissions on '${DB_NAME}' schema public for '${DB_USER}'..."
             su - postgres -c "psql -d '${DB_NAME}' -c 'GRANT ALL ON SCHEMA public TO \"${DB_USER}\"; GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"${DB_USER}\"; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"${DB_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"${DB_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"${DB_USER}\";' 2>/dev/null || true"
             su - postgres -c "psql -c 'ALTER DATABASE \"${DB_NAME}\" OWNER TO \"${DB_USER}\";' 2>/dev/null || true"
+        fi
+
+        # Apply any pending migrations via psql to ensure schema is always current
+        if [ -d "${APP_DIR}/migrations" ]; then
+            echo "  -> Verifying and applying migrations to '${DB_NAME}'..."
+            for sql_file in $(ls -1 "${APP_DIR}/migrations/"*.sql 2>/dev/null | sort); do
+                su - postgres -c "psql -d '${DB_NAME}' -f '$sql_file' 2>/dev/null || true"
+            done
         fi
     fi
 fi

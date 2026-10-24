@@ -286,3 +286,50 @@ pub struct PlayerStats {
     pub avg_accuracy: f64,
     pub history: Vec<PlayerHistoryItem>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_create_quiz_with_option_text() {
+        let json = r#"{
+            "title": "General Knowledge",
+            "questions": [{
+                "question_text": "Capital of France?",
+                "time_limit_sec": 20,
+                "options": [
+                    { "option_text": "Paris", "is_correct": true },
+                    { "option_text": "London", "is_correct": false }
+                ]
+            }]
+        }"#;
+
+        let req: CreateQuizRequest = serde_json::from_str(json).expect("Should deserialize option_text");
+        assert_eq!(req.title, "General Knowledge");
+        assert_eq!(req.questions[0].options[0].option_text, "Paris");
+        assert!(req.questions[0].options[0].is_correct);
+    }
+
+    #[test]
+    fn test_deserialize_create_quiz_with_text_alias() {
+        let json = r#"{
+            "title": "General Knowledge",
+            "questions": [{
+                "text": "Capital of France?",
+                "time_limit_secs": 20,
+                "options": [
+                    { "text": "Paris", "is_correct": true },
+                    { "text": "London", "is_correct": false }
+                ]
+            }]
+        }"#;
+
+        let req: CreateQuizRequest = serde_json::from_str(json).expect("Should deserialize with text alias");
+        assert_eq!(req.title, "General Knowledge");
+        assert_eq!(req.questions[0].question_text, "Capital of France?");
+        assert_eq!(req.questions[0].time_limit_sec, Some(20));
+        assert_eq!(req.questions[0].options[0].option_text, "Paris");
+        assert!(req.questions[0].options[0].is_correct);
+    }
+}

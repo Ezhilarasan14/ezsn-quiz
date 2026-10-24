@@ -1,6 +1,7 @@
 [Unit]
 Description=EZSN Quiz Rust Application
-After=network.target
+After=network.target postgresql.service
+Wants=postgresql.service
 
 [Service]
 Type=simple
@@ -15,6 +16,7 @@ EnvironmentFile=-/var/www/quiz/.env
 ExecStart=/var/www/quiz/ezsn_quiz
 Restart=always
 RestartSec=3
+LimitNOFILE=65536
 
 StandardOutput=journal
 StandardError=journal

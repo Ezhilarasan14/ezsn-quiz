@@ -55,15 +55,12 @@ export const useQuizStore = defineStore('quiz', () => {
       branch_name: (quiz as any).branch_name ?? null,
       questions: (quiz.questions ?? []).map((q: any) => ({
         question_text: q.question_text ?? q.text ?? '',
-        text: q.question_text ?? q.text ?? '',
         time_limit_sec: q.time_limit_secs ?? q.time_limit_sec ?? 20,
-        time_limit_secs: q.time_limit_secs ?? q.time_limit_sec ?? 20,
         points: q.points ?? 1000,
         options: (q.options ?? [])
           .filter((o: any) => (o.text ?? o.option_text ?? '').trim().length > 0)
           .map((o: any) => ({
             option_text: o.option_text ?? o.text ?? '',
-            text: o.text ?? o.option_text ?? '',
             is_correct: !!o.is_correct,
           })),
       })),

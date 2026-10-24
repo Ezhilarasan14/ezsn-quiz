@@ -7,6 +7,7 @@ import type { Question } from '@/types/quiz';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import QuizImportModal from '@/components/admin/QuizImportModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -18,6 +19,22 @@ const description = ref('');
 const questions = ref<Question[]>([]);
 const errorMessage = ref('');
 const isSaving = ref(false);
+const importModalVisible = ref(false);
+
+function handleImportedQuestions(data: { title: string; description: string; questions: Question[] }) {
+  if (data.title && !title.value) {
+    title.value = data.title;
+  }
+  if (data.description && !description.value) {
+    description.value = data.description;
+  }
+  const isOnlyOneEmpty = questions.value.length === 1 && !questions.value[0].question_text.trim();
+  if (isOnlyOneEmpty) {
+    questions.value = data.questions;
+  } else {
+    questions.value.push(...data.questions);
+  }
+}
 
 const optionIcons = ['▲', '◆', '●', '■'];
 const optionColors = [
@@ -180,13 +197,22 @@ async function handleSave() {
           </span>
         </div>
 
-        <Button
-          label="Add Question"
-          icon="pi pi-plus"
-          size="small"
-          class="glass-panel hover:bg-purple-500/15 text-purple-200 border border-purple-400/30 font-bold rounded-xl px-4 py-2 text-xs"
-          @click="addQuestion"
-        />
+        <div class="flex items-center space-x-2">
+          <Button
+            label="Import Questions"
+            icon="pi pi-upload"
+            size="small"
+            class="glass-panel hover:bg-purple-500/15 text-purple-200 border border-purple-400/30 font-bold rounded-xl px-3.5 py-2 text-xs"
+            @click="importModalVisible = true"
+          />
+          <Button
+            label="Add Question"
+            icon="pi pi-plus"
+            size="small"
+            class="glass-panel hover:bg-purple-500/15 text-purple-200 border border-purple-400/30 font-bold rounded-xl px-4 py-2 text-xs"
+            @click="addQuestion"
+          />
+        </div>
       </div>
 
       <div
@@ -273,5 +299,12 @@ async function handleSave() {
         </div>
       </div>
     </div>
+
+    <!-- Questions Import Modal -->
+    <QuizImportModal
+      v-model:visible="importModalVisible"
+      mode="append"
+      @import="handleImportedQuestions"
+    />
   </div>
 </template>

@@ -14,12 +14,31 @@ import Message from 'primevue/message';
 import Dialog from 'primevue/dialog';
 import QRCode from 'qrcode';
 import QuizCard from '@/components/admin/QuizCard.vue';
+import QuizImportModal from '@/components/admin/QuizImportModal.vue';
+import type { Question } from '@/types/quiz';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const quizStore = useQuizStore();
 const brandingStore = useBrandingStore();
+
+const importModalVisible = ref(false);
+
+async function handleImportQuiz(data: { title: string; description: string; questions: Question[] }) {
+  try {
+    const newId = await quizStore.saveQuiz({
+      title: data.title,
+      description: data.description,
+      questions: data.questions,
+    });
+    if (newId) {
+      await quizStore.fetchQuizzes();
+    }
+  } catch (err) {
+    console.error('Failed to import quiz:', err);
+  }
+}
 
 // Local Dev Login Form
 const showDevLogin = ref(false);
@@ -426,6 +445,12 @@ function handleOrgLogoUpload(event: Event) {
 
           <div class="flex items-center space-x-2">
             <Button
+              label="Import Quiz"
+              icon="pi pi-upload"
+              class="glass-panel hover:bg-purple-500/15 text-purple-200 border border-purple-400/30 font-bold text-xs sm:text-sm px-3.5 py-2.5 rounded-xl transition-all"
+              @click="importModalVisible = true"
+            />
+            <Button
               label="New Quiz"
               icon="pi pi-plus"
               class="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-300/30 font-bold text-xs sm:text-sm text-white px-4 py-2.5 rounded-xl shadow-lg shadow-purple-900/40"
@@ -522,7 +547,10 @@ function handleOrgLogoUpload(event: Event) {
           </div>
           <h3 class="text-lg font-bold text-slate-200">No quizzes found</h3>
           <p class="text-xs text-purple-300/70 max-w-sm mx-auto">Create your first quiz competition to start hosting live multiplayer arenas.</p>
-          <Button label="Create Quiz" icon="pi pi-plus" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 font-bold border-none" @click="handleCreate" />
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <Button label="Create Quiz" icon="pi pi-plus" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 font-bold border-none" @click="handleCreate" />
+            <Button label="Import Quiz" icon="pi pi-upload" class="glass-panel text-purple-200 border border-purple-400/30 font-bold hover:bg-purple-500/15" @click="importModalVisible = true" />
+          </div>
         </div>
       </div>
 
@@ -905,5 +933,12 @@ function handleOrgLogoUpload(event: Event) {
         </div>
       </div>
     </Dialog>
+
+    <!-- Quiz Import Modal -->
+    <QuizImportModal
+      v-model:visible="importModalVisible"
+      mode="create"
+      @import="handleImportQuiz"
+    />
   </div>
 </template>
