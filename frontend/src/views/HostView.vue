@@ -30,7 +30,7 @@ onUnmounted(() => {
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] flex flex-col justify-between">
-    <main class="flex-1">
+    <main class="flex-1 pb-6">
       <LobbyView v-if="gameStore.gameState === 'LOBBY'" />
       <QuestionView v-else-if="gameStore.gameState === 'QUESTION'" />
       <AnswerRevealView v-else-if="gameStore.gameState === 'REVEAL'" />
@@ -40,18 +40,23 @@ onUnmounted(() => {
     <!-- Host control footer -->
     <footer
       v-if="gameStore.gameState !== 'PODIUM'"
-      class="bg-slate-900/90 border-t border-slate-800 py-3 px-6 flex items-center justify-between text-xs font-semibold text-slate-400"
+      class="glass-panel border-t border-white/10 py-3.5 px-4 sm:px-6 flex items-center justify-between text-xs font-semibold text-slate-300 sticky bottom-0 z-20 backdrop-blur-xl"
     >
-      <div class="flex items-center space-x-3">
-        <span class="w-2.5 h-2.5 rounded-full" :class="gameStore.isConnected ? 'bg-emerald-400' : 'bg-rose-400'" />
-        <span>Host Console • Room {{ gameStore.roomPin }}</span>
+      <div class="flex items-center space-x-2.5">
+        <div class="relative flex items-center justify-center">
+          <span class="w-2.5 h-2.5 rounded-full" :class="gameStore.isConnected ? 'bg-emerald-400' : 'bg-rose-400 animate-ping'" />
+          <span v-if="gameStore.isConnected" class="absolute -inset-0.5 rounded-full bg-emerald-400/40 animate-ping" />
+        </div>
+        <span class="font-bold text-white">Host Projector • Room {{ gameStore.roomPin }}</span>
       </div>
 
-      <div class="flex items-center space-x-4">
-        <span>{{ gameStore.playerCount }} Players Connected</span>
+      <div class="flex items-center space-x-3 sm:space-x-5">
+        <span class="glass-pill px-3 py-1 rounded-full text-indigo-300 font-bold hidden sm:inline-block">
+          {{ gameStore.playerCount }} {{ gameStore.playerCount === 1 ? 'Contestant' : 'Contestants' }} Connected
+        </span>
         <button
           @click="gameStore.disconnect(); router.push('/admin');"
-          class="text-rose-400 hover:text-rose-300 font-bold"
+          class="text-rose-400 hover:text-rose-300 font-bold transition-colors py-1 px-2 rounded-lg hover:bg-rose-500/10"
         >
           Exit Session
         </button>

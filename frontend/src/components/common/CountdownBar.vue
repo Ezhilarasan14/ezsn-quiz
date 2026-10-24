@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import ProgressBar from 'primevue/progressbar';
 
 const props = defineProps<{
   totalSecs: number;
@@ -12,38 +11,41 @@ const percentage = computed(() => {
   return Math.max(0, Math.min(100, (props.timeLeftSecs / props.totalSecs) * 100));
 });
 
-const progressColorClass = computed(() => {
-  if (props.timeLeftSecs <= 5) return 'bg-rose-500';
-  if (props.timeLeftSecs <= 10) return 'bg-amber-500';
-  return 'bg-indigo-500';
+const progressGradientClass = computed(() => {
+  if (props.timeLeftSecs <= 5) return 'bg-gradient-to-r from-rose-500 to-pink-600 shadow-lg shadow-rose-500/50';
+  if (props.timeLeftSecs <= 10) return 'bg-gradient-to-r from-amber-400 to-orange-500 shadow-md shadow-amber-500/40';
+  return 'bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 shadow-md shadow-indigo-500/30';
 });
 </script>
 
 <template>
-  <div class="w-full space-y-1">
-    <div class="flex justify-between items-center text-sm font-semibold text-slate-400 px-1">
-      <span>Time Remaining</span>
+  <div class="w-full space-y-1.5">
+    <div class="flex justify-between items-center text-xs font-bold text-slate-300 px-1">
+      <span class="flex items-center space-x-1.5">
+        <i class="pi pi-clock text-indigo-400 text-xs" />
+        <span>Time Left</span>
+      </span>
       <span
         :class="[
-          'text-base font-extrabold px-2 py-0.5 rounded-full transition-colors',
-          timeLeftSecs <= 5 ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'text-slate-200'
+          'font-mono text-xs font-black px-2 py-0.5 rounded-full transition-all',
+          timeLeftSecs <= 5
+            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse'
+            : timeLeftSecs <= 10
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              : 'glass-pill text-slate-200'
         ]"
       >
         {{ timeLeftSecs }}s
       </span>
     </div>
 
-    <!-- PrimeVue ProgressBar -->
-    <ProgressBar
-      :value="percentage"
-      :showValue="false"
-      class="h-3 rounded-full bg-slate-800 overflow-hidden"
-    >
+    <!-- Smooth Glass Progress Track -->
+    <div class="w-full h-2.5 rounded-full bg-slate-950/80 p-0.5 border border-white/10 overflow-hidden shadow-inner">
       <div
         class="h-full transition-all duration-300 ease-linear rounded-full"
-        :class="progressColorClass"
+        :class="progressGradientClass"
         :style="{ width: `${percentage}%` }"
       />
-    </ProgressBar>
+    </div>
   </div>
 </template>
