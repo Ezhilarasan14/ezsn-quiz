@@ -87,6 +87,36 @@ function handleQuickJoin() {
     <template v-if="isAlreadyLoggedIn">
       <!-- 1a: Connected to WebSocket: Show active game screens -->
       <template v-if="gameStore.isConnected">
+        <!-- Persistent Organization Banner for Customer Player -->
+        <header
+          v-if="brandingStore.currentTheme.logo_url || (brandingStore.currentTheme.org_name && brandingStore.currentTheme.org_name !== 'EZSN Quiz')"
+          class="pt-3 px-4 max-w-lg mx-auto w-full"
+        >
+          <div class="glass-panel flex items-center justify-between p-3 rounded-2xl border border-white/10 shadow-lg">
+            <div class="flex items-center space-x-3 min-w-0">
+              <img
+                v-if="brandingStore.currentTheme.logo_url"
+                :src="brandingStore.currentTheme.logo_url"
+                alt="Organization Logo"
+                class="h-9 w-auto max-w-[110px] object-contain rounded-lg p-1 bg-white/10 shrink-0"
+              />
+              <div class="min-w-0">
+                <span class="text-[9px] font-extrabold uppercase tracking-widest text-indigo-400 block">Hosted by</span>
+                <h2 class="text-xs sm:text-sm font-black text-white truncate">
+                  {{ brandingStore.currentTheme.org_name }}
+                </h2>
+              </div>
+            </div>
+
+            <div class="text-right shrink-0">
+              <span class="text-[9px] font-bold uppercase text-slate-400 block">Game PIN</span>
+              <span class="text-sm sm:text-base font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+                {{ gameStore.roomPin || pin }}
+              </span>
+            </div>
+          </div>
+        </header>
+
         <main class="flex-1 pb-16">
           <PlayerLobbyView v-if="gameStore.gameState === 'LOBBY'" />
           <PlayerController v-else-if="gameStore.gameState === 'QUESTION'" />
@@ -124,7 +154,26 @@ function handleQuickJoin() {
 
       <!-- 1b: Connecting state -->
       <template v-else>
-        <main class="flex-1 flex flex-col items-center justify-center py-24 space-y-4 text-center px-4">
+        <main class="flex-1 flex flex-col items-center justify-center py-16 sm:py-24 space-y-6 text-center px-4">
+          <!-- Organization Logo & Name in connecting view -->
+          <div
+            v-if="brandingStore.currentTheme.logo_url || (brandingStore.currentTheme.org_name && brandingStore.currentTheme.org_name !== 'EZSN Quiz')"
+            class="flex flex-col items-center space-y-2 mb-2"
+          >
+            <img
+              v-if="brandingStore.currentTheme.logo_url"
+              :src="brandingStore.currentTheme.logo_url"
+              alt="Organization Logo"
+              class="h-14 sm:h-16 w-auto max-w-[180px] object-contain rounded-2xl p-2 glass-card shadow-2xl"
+            />
+            <div class="space-y-0.5">
+              <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block">Hosted by</span>
+              <h2 class="text-base sm:text-lg font-black text-white">
+                {{ brandingStore.currentTheme.org_name }}
+              </h2>
+            </div>
+          </div>
+
           <div class="w-14 h-14 rounded-2xl glass-panel flex items-center justify-center shadow-xl border border-white/15">
             <div class="w-7 h-7 border-3 border-indigo-400 border-t-transparent rounded-full animate-spin" />
           </div>

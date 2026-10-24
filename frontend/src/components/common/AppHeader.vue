@@ -26,12 +26,12 @@ function toggleSound() {
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
       <!-- Main Brand Logo (Always Permanent: ezsnapps) -->
       <router-link to="/" class="flex items-center space-x-2.5 group shrink-0">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-all">
-          <div class="w-full h-full bg-[#070a13] rounded-[6px] flex items-center justify-center font-black text-xs text-transparent bg-clip-text bg-gradient-to-tr from-indigo-400 to-pink-400">
-            EZ
-          </div>
-        </div>
-        <span class="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-indigo-300 transition-colors">
+        <img
+          :src="MAIN_BRAND_LOGO"
+          alt="ezsnapps"
+          class="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-105"
+        />
+        <span class="text-base sm:text-xl font-black tracking-tight text-white group-hover:text-indigo-300 transition-colors">
           ezsnapps<span class="text-indigo-400">.quiz</span>
         </span>
       </router-link>
@@ -39,17 +39,17 @@ function toggleSound() {
       <!-- Center: Organization Branding (Visible during active quiz sessions) -->
       <div
         v-if="isGameRoute && (brandingStore.currentTheme.logo_url || brandingStore.currentTheme.org_name)"
-        class="hidden sm:flex items-center space-x-2.5 px-3.5 py-1 rounded-full bg-black/40 border border-white/15 backdrop-blur-md shadow-inner"
+        class="flex items-center space-x-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-black/40 border border-white/15 backdrop-blur-md shadow-inner max-w-[170px] sm:max-w-[280px]"
       >
         <img
           v-if="brandingStore.currentTheme.logo_url"
           :src="brandingStore.currentTheme.logo_url"
           alt="Organization Logo"
-          class="h-5 w-auto max-w-[90px] object-contain rounded"
+          class="h-5 sm:h-6 w-auto max-w-[50px] sm:max-w-[90px] object-contain rounded bg-white/10 p-0.5 shrink-0"
         />
-        <div class="flex items-center space-x-1.5 text-xs">
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-300">Host:</span>
-          <span class="font-bold text-white truncate max-w-[140px]">
+        <div class="flex items-center space-x-1 min-w-0">
+          <span class="hidden sm:inline text-[10px] font-extrabold uppercase tracking-wider text-indigo-300">Host:</span>
+          <span class="font-bold text-white text-xs sm:text-sm truncate">
             {{ brandingStore.currentTheme.org_name }}
           </span>
         </div>

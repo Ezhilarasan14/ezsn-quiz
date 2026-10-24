@@ -24,9 +24,19 @@ export const useBrandingStore = defineStore('branding', () => {
   const navbarColor = computed(() => currentTheme.value.primary_color || '#0F172A');
 
   function applyTheme(theme: Partial<ThemeConfig>) {
+    const orgName = (theme.org_name && theme.org_name !== 'EZSN Quiz')
+      ? theme.org_name
+      : (orgConfig.value?.name || currentTheme.value.org_name || theme.org_name || 'EZSN Quiz');
+
+    const logoUrl = theme.logo_url !== undefined && theme.logo_url !== null && theme.logo_url !== ''
+      ? theme.logo_url
+      : (orgConfig.value?.logo_url || currentTheme.value.logo_url || null);
+
     currentTheme.value = {
       ...currentTheme.value,
       ...theme,
+      org_name: orgName,
+      logo_url: logoUrl,
     };
 
     if (typeof document !== 'undefined') {

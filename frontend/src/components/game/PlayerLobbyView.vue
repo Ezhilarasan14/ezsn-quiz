@@ -7,35 +7,7 @@ const brandingStore = useBrandingStore();
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto space-y-6 py-6 sm:py-10 px-4">
-    <!-- Organization Header Banner -->
-    <div
-      v-if="brandingStore.currentTheme.logo_url || brandingStore.currentTheme.org_name"
-      class="glass-panel flex items-center justify-between gap-4 p-4 rounded-2xl"
-    >
-      <div class="flex items-center space-x-3.5">
-        <img
-          v-if="brandingStore.currentTheme.logo_url"
-          :src="brandingStore.currentTheme.logo_url"
-          alt="Organization Logo"
-          class="h-10 w-auto max-w-[130px] object-contain rounded-xl p-1 glass-card"
-        />
-        <div>
-          <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block">Hosted by</span>
-          <h2 class="text-sm sm:text-base font-black text-white leading-tight">
-            {{ brandingStore.currentTheme.org_name }}
-          </h2>
-        </div>
-      </div>
-
-      <div class="text-right">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Room PIN</span>
-        <span class="text-lg font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
-          {{ gameStore.roomPin }}
-        </span>
-      </div>
-    </div>
-
+  <div class="max-w-2xl mx-auto space-y-6 py-4 sm:py-8 px-4">
     <!-- Player Ready Card (No QR Code - already connected) -->
     <div class="glass-panel rounded-3xl p-6 sm:p-10 text-center space-y-6 shadow-2xl">
       <!-- Animated Avatar -->
