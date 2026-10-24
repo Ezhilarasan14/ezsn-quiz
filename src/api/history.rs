@@ -33,3 +33,18 @@ pub async fn get_player_stats(pool: web::Data<DbPool>, path: web::Path<String>) 
         }
     }
 }
+
+pub async fn get_player_review(
+    pool: web::Data<DbPool>,
+    path: web::Path<(String, String)>,
+) -> impl Responder {
+    let (game_id, player_id) = path.into_inner();
+    match db::get_player_game_review(pool.get_ref(), &game_id, &player_id).await {
+        Ok(Some(review)) => HttpResponse::Ok().json(review),
+        Ok(None) => HttpResponse::NotFound().json(serde_json::json!({ "error": "Review not found for this player" })),
+        Err(e) => {
+            log::error!("Failed to fetch player review for game {} player {}: {}", game_id, player_id, e);
+            HttpResponse::InternalServerError().json(serde_json::json!({ "error": "Failed to fetch review" }))
+        }
+    }
+}

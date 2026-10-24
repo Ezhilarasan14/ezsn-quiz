@@ -101,4 +101,6 @@ export const api = {
   getHistory: () => request<any[]>('/api/history'),
   getQuizHistory: (quizId: string) => request<any[]>(`/api/quizzes/${quizId}/history`),
   getPlayerStats: (email: string) => request<any>(`/api/players/${encodeURIComponent(email)}/stats`),
+  getPlayerReview: (gameId: string, playerIdOrEmail: string) =>
+    request<import('@/types/game').PlayerQuizSummary>(`/api/history/${encodeURIComponent(gameId)}/review/${encodeURIComponent(playerIdOrEmail)}`),
 };

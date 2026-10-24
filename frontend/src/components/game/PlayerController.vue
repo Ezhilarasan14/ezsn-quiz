@@ -58,8 +58,8 @@ function selectOption(id: string) {
         </div>
 
         <div class="flex items-center space-x-1.5">
-          <i class="pi pi-bolt text-amber-400 text-xs" />
-          <span class="font-black text-white">{{ gameStore.score }} pts</span>
+          <i class="pi pi-clock text-indigo-400 text-xs" />
+          <span class="font-bold text-slate-300">{{ gameStore.timeLimitSecs }}s limit</span>
         </div>
       </div>
 
@@ -78,12 +78,12 @@ function selectOption(id: string) {
 
     <!-- Submitted / Waiting Feedback Card -->
     <div v-if="gameStore.answerSubmitted" class="py-1">
-      <div class="glass-panel border-emerald-500/30 bg-emerald-950/40 rounded-2xl p-3.5 flex items-center justify-center space-x-2.5 shadow-lg shadow-emerald-950/50">
-        <div class="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-black text-slate-950">
+      <div class="glass-panel border-indigo-500/30 bg-indigo-950/40 rounded-2xl p-3.5 flex items-center justify-center space-x-2.5 shadow-lg shadow-indigo-950/50">
+        <div class="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-black text-white animate-pulse">
           ✓
         </div>
-        <span class="font-black text-xs sm:text-sm text-emerald-300">
-          Answer Locked In! Waiting for results...
+        <span class="font-black text-xs sm:text-sm text-indigo-200">
+          Answer Locked In! Preparing next question...
         </span>
       </div>
     </div>

@@ -69,6 +69,7 @@ impl GameRoom {
             player.score += points_awarded;
             player.streak = new_streak;
             player.total_answered += 1;
+            player.total_time_ms += elapsed_ms;
             if is_correct {
                 player.correct_count += 1;
             }
@@ -88,6 +89,12 @@ impl GameRoom {
             points_awarded,
             submitted_at: Instant::now(),
         };
+
+        // Also record in cumulative all_answers map
+        room.all_answers
+            .entry(q_idx)
+            .or_default()
+            .insert(player_id.to_string(), player_answer.clone());
 
         let mut all_answered = false;
         let mut answered_count = 0;

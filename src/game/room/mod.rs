@@ -4,6 +4,7 @@ pub mod registration;
 pub mod state_sync;
 
 use crate::db::models::{Organization, QuizDetail};
+use crate::db::DbPool;
 use crate::game::types::*;
 use crate::ws::messages::ServerMessage;
 use std::collections::HashMap;
@@ -18,9 +19,11 @@ pub struct GameRoom {
     pub host_token: String,
     pub quiz: QuizDetail,
     pub organization: Option<Organization>,
+    pub db_pool: DbPool,
     pub state: RoomState,
     pub host_tx: Option<mpsc::UnboundedSender<ServerMessage>>,
     pub players: HashMap<String, PlayerSession>,
+    pub all_answers: HashMap<usize, HashMap<String, PlayerAnswer>>,
     pub created_at: Instant,
     pub last_activity: Instant,
     pub timer_token: u64,
@@ -33,6 +36,7 @@ impl GameRoom {
         host_token: String,
         quiz: QuizDetail,
         organization: Option<Organization>,
+        db_pool: DbPool,
     ) -> Self {
         Self {
             pin,
@@ -40,9 +44,11 @@ impl GameRoom {
             host_token,
             quiz,
             organization,
+            db_pool,
             state: RoomState::Lobby,
             host_tx: None,
             players: HashMap::new(),
+            all_answers: HashMap::new(),
             created_at: Instant::now(),
             last_activity: Instant::now(),
             timer_token: 0,

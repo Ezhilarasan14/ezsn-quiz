@@ -49,7 +49,7 @@ impl RoomManager {
         // Fetch organization branding for the game session
         let organization = crate::db::organizations::get_default_organization(&self.db_pool).await.ok();
 
-        let room = GameRoom::new(pin.clone(), game_id.clone(), host_token.clone(), quiz, organization);
+        let room = GameRoom::new(pin.clone(), game_id.clone(), host_token.clone(), quiz, organization, self.db_pool.clone());
         let room_arc = Arc::new(RwLock::new(room));
         rooms.insert(pin.clone(), room_arc);
 

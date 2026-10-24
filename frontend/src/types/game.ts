@@ -63,3 +63,29 @@ export interface PlayerStats {
   avg_accuracy: number;
   history: PlayerHistoryItem[];
 }
+
+export interface QuestionReviewItem {
+  question_id: string;
+  question_index: number;
+  question_text: string;
+  selected_option_id: string | null;
+  selected_option_text: string | null;
+  correct_option_id: string;
+  correct_option_text: string;
+  is_correct: boolean;
+  points_awarded: number;
+  response_time_ms: number;
+  time_limit_sec: number;
+}
+
+export interface PlayerQuizSummary {
+  total_score: number;
+  correct_count: number;
+  incorrect_count: number;
+  total_questions: number;
+  accuracy_percentage: number;
+  final_rank: number;
+  total_players: number;
+  total_time_ms: number;
+  reviews: QuestionReviewItem[];
+}

@@ -1,5 +1,7 @@
 use crate::db::models::*;
 use crate::db::DbPool;
+use crate::game::types::{PlayerQuizSummary, QuestionReviewItem};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -11,6 +13,51 @@ pub struct FinalPlayerResult {
     pub final_rank: i64,
     pub correct_count: i64,
     pub total_answered: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct GameAnswerInsert {
+    pub id: String,
+    pub game_id: String,
+    pub question_id: String,
+    pub player_id: String,
+    pub option_id: String,
+    pub is_correct: bool,
+    pub points_awarded: i64,
+    pub response_time_ms: i64,
+}
+
+pub async fn save_game_answers(
+    pool: &DbPool,
+    answers: &[GameAnswerInsert],
+) -> Result<(), sqlx::Error> {
+    if answers.is_empty() {
+        return Ok(());
+    }
+
+    let mut tx = pool.begin().await?;
+
+    for ans in answers {
+        sqlx::query(
+            r#"
+            INSERT INTO game_answers (id, game_id, question_id, player_id, option_id, is_correct, points_awarded, response_time_ms, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+            "#,
+        )
+        .bind(&ans.id)
+        .bind(&ans.game_id)
+        .bind(&ans.question_id)
+        .bind(&ans.player_id)
+        .bind(&ans.option_id)
+        .bind(ans.is_correct)
+        .bind(ans.points_awarded)
+        .bind(ans.response_time_ms)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(())
 }
 
 pub async fn create_game_record(
@@ -217,5 +264,130 @@ pub async fn get_player_stats(pool: &DbPool, email: &str) -> Result<Option<Playe
         total_answered,
         avg_accuracy,
         history,
+    }))
+}
+
+pub async fn get_player_game_review(
+    pool: &DbPool,
+    game_id: &str,
+    player_id: &str,
+) -> Result<Option<PlayerQuizSummary>, sqlx::Error> {
+    let player_res = sqlx::query_as::<_, GamePlayerResultRow>(
+        r#"
+        SELECT id, game_id, player_id, nickname, email, total_score, final_rank, correct_count, total_answered
+        FROM game_player_results
+        WHERE game_id = $1 AND (player_id = $2 OR LOWER(email) = LOWER($2))
+        LIMIT 1
+        "#,
+    )
+    .bind(game_id)
+    .bind(player_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let p_res = match player_res {
+        Some(r) => r,
+        None => return Ok(None),
+    };
+
+    let total_players = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM game_player_results WHERE game_id = $1"
+    )
+    .bind(game_id)
+    .fetch_one(pool)
+    .await? as usize;
+
+    let quiz_id = sqlx::query_scalar::<_, String>(
+        "SELECT quiz_id FROM games WHERE id = $1"
+    )
+    .bind(game_id)
+    .fetch_one(pool)
+    .await?;
+
+    let questions = crate::db::quizzes::get_quiz_by_id(pool, &quiz_id).await?
+        .map(|q| q.questions)
+        .unwrap_or_default();
+
+    #[derive(sqlx::FromRow)]
+    struct AnswerRow {
+        question_id: String,
+        option_id: String,
+        is_correct: bool,
+        points_awarded: i64,
+        response_time_ms: i64,
+    }
+
+    let answers = sqlx::query_as::<_, AnswerRow>(
+        r#"
+        SELECT question_id, option_id, is_correct, points_awarded, response_time_ms
+        FROM game_answers
+        WHERE game_id = $1 AND player_id = $2
+        "#,
+    )
+    .bind(game_id)
+    .bind(&p_res.player_id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut answer_map = HashMap::new();
+    for a in answers {
+        answer_map.insert(a.question_id.clone(), a);
+    }
+
+    let total_questions = questions.len();
+    let mut total_time_ms = 0u64;
+    let mut reviews = Vec::new();
+
+    for (idx, q) in questions.iter().enumerate() {
+        let correct_opt = q.options.iter().find(|o| o.is_correct);
+        let correct_opt_id = correct_opt.map(|o| o.id.clone()).unwrap_or_default();
+        let correct_opt_text = correct_opt.map(|o| o.option_text.clone()).unwrap_or_default();
+
+        let (selected_opt_id, selected_opt_text, is_correct, points_awarded, response_time_ms) = match answer_map.get(&q.id) {
+            Some(a) => {
+                let opt_text = q.options.iter().find(|o| o.id == a.option_id).map(|o| o.option_text.clone());
+                let rt = a.response_time_ms.max(0) as u64;
+                total_time_ms += rt;
+                (Some(a.option_id.clone()), opt_text, a.is_correct, a.points_awarded, rt)
+            }
+            None => {
+                let rt = (q.time_limit_sec * 1000) as u64;
+                (None, None, false, 0, rt)
+            }
+        };
+
+        reviews.push(QuestionReviewItem {
+            question_id: q.id.clone(),
+            question_index: idx + 1,
+            question_text: q.question_text.clone(),
+            selected_option_id: selected_opt_id,
+            selected_option_text: selected_opt_text,
+            correct_option_id: correct_opt_id,
+            correct_option_text: correct_opt_text,
+            is_correct,
+            points_awarded,
+            response_time_ms,
+            time_limit_sec: q.time_limit_sec as u64,
+        });
+    }
+
+    let correct_count = p_res.correct_count as usize;
+    let incorrect_count = total_questions.saturating_sub(correct_count);
+    let accuracy_percentage = if total_questions > 0 {
+        ((correct_count as f64 / total_questions as f64) * 1000.0).round() / 10.0
+    } else {
+        0.0
+    };
+
+    Ok(Some(PlayerQuizSummary {
+        total_score: p_res.total_score,
+        correct_count,
+        incorrect_count,
+        total_questions,
+        accuracy_percentage,
+        final_rank: p_res.final_rank as usize,
+        total_players,
+        total_time_ms,
+        reviews,
     }))
 }

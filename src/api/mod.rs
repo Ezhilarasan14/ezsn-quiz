@@ -36,6 +36,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             // History & Player Analytics
             .route("/history", web::get().to(history::list_history))
             .route("/history/{game_id}", web::get().to(history::get_game_results))
+            .route("/history/{game_id}/review/{player_id}", web::get().to(history::get_player_review))
             .route("/players/{email}/stats", web::get().to(history::get_player_stats)),
     )
     .route("/health", web::get().to(health::health_check))

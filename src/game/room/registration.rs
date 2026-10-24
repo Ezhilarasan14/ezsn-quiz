@@ -127,6 +127,7 @@ impl GameRoom {
             streak: 0,
             correct_count: 0,
             total_answered: 0,
+            total_time_ms: 0,
             rank_history: Vec::new(),
             is_connected: true,
             last_seen: Instant::now(),

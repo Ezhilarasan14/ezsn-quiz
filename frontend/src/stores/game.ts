@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { wsClient } from '@/services/websocket';
 import { soundService } from '@/services/audio';
 import { useBrandingStore } from './branding';
-import type { GameState, Player, QuestionStats, PodiumEntry } from '@/types/game';
+import type { GameState, Player, QuestionStats, PodiumEntry, PlayerQuizSummary } from '@/types/game';
 import type { OptionView, LeaderboardEntry, ServerMessage } from '@/types/ws';
 
 export const useGameStore = defineStore('game', () => {
@@ -52,6 +52,7 @@ export const useGameStore = defineStore('game', () => {
   // Final Results (Scoreboard shown only at end)
   const podium = ref<PodiumEntry[]>([]);
   const fullResults = ref<LeaderboardEntry[]>([]);
+  const playerSummary = ref<PlayerQuizSummary | null>(null);
 
   // Timer reference
   let timerInterval: number | null = null;
@@ -194,6 +195,7 @@ export const useGameStore = defineStore('game', () => {
         podium.value = msg.payload.podium;
         fullResults.value = msg.payload.full_results;
         if (msg.payload.my_rank) rank.value = msg.payload.my_rank;
+        if (msg.payload.player_summary) playerSummary.value = msg.payload.player_summary;
         soundService.playFanfare();
         break;
 
@@ -290,6 +292,7 @@ export const useGameStore = defineStore('game', () => {
     gameState.value = 'LOBBY';
     selectedOptionId.value = null;
     answerSubmitted.value = false;
+    playerSummary.value = null;
     role.value = null;
     hostToken.value = '';
   }
@@ -324,6 +327,7 @@ export const useGameStore = defineStore('game', () => {
     lastAnswerCorrect,
     podium,
     fullResults,
+    playerSummary,
     joinAsPlayer,
     connectAsHost,
     submitAnswer,

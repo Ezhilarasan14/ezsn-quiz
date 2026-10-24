@@ -43,6 +43,7 @@ pub struct LeaderboardEntry {
     pub rank_change: i32, // e.g. +1, -1, 0
     pub streak: u32,
     pub is_connected: bool,
+    pub total_time_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +54,35 @@ pub struct PodiumEntry {
     pub rank: usize, // 1, 2, 3
     pub correct_count: usize,
     pub total_answered: usize,
+    pub total_time_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuestionReviewItem {
+    pub question_id: String,
+    pub question_index: usize,
+    pub question_text: String,
+    pub selected_option_id: Option<String>,
+    pub selected_option_text: Option<String>,
+    pub correct_option_id: String,
+    pub correct_option_text: String,
+    pub is_correct: bool,
+    pub points_awarded: i64,
+    pub response_time_ms: u64,
+    pub time_limit_sec: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerQuizSummary {
+    pub total_score: i64,
+    pub correct_count: usize,
+    pub incorrect_count: usize,
+    pub total_questions: usize,
+    pub accuracy_percentage: f64,
+    pub final_rank: usize,
+    pub total_players: usize,
+    pub total_time_ms: u64,
+    pub reviews: Vec<QuestionReviewItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -82,6 +112,7 @@ pub struct PlayerSession {
     pub streak: u32,
     pub correct_count: usize,
     pub total_answered: usize,
+    pub total_time_ms: u64,
     pub rank_history: Vec<usize>,
     pub is_connected: bool,
     pub last_seen: Instant,

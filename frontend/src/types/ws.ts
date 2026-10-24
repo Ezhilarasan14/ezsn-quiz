@@ -1,5 +1,5 @@
 import type { ThemeConfig } from './quiz';
-import type { PodiumEntry } from './game';
+import type { PodiumEntry, PlayerQuizSummary } from './game';
 
 export interface LobbyPlayer {
   player_id: string;
@@ -19,6 +19,7 @@ export interface LeaderboardEntry {
   score: number;
   streak: number;
   rank: number;
+  total_time_ms?: number;
 }
 
 // Client -> Server messages
@@ -145,6 +146,7 @@ export type ServerMessage =
         podium: PodiumEntry[];
         full_results: LeaderboardEntry[];
         my_rank?: number;
+        player_summary?: PlayerQuizSummary;
       };
     }
   | {

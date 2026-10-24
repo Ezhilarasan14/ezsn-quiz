@@ -98,6 +98,7 @@ impl GameRoom {
                     podium: podium.clone(),
                     full_results: full_results.clone(),
                     my_rank: None,
+                    player_summary: None,
                 });
             }
         }
@@ -199,10 +200,12 @@ impl GameRoom {
                 full_results,
             } => {
                 let my_rank = full_results.iter().position(|r| r.player_id == player_id).map(|i| i + 1);
+                let summary = my_rank.and_then(|r| self.build_player_summary(player_id, r));
                 let _ = tx.send(ServerMessage::Podium {
                     podium: podium.clone(),
                     full_results: full_results.clone(),
                     my_rank,
+                    player_summary: summary,
                 });
             }
         }

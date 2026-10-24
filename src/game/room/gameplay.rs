@@ -153,69 +153,210 @@ impl GameRoom {
             };
 
             room.timer_token += 1;
+            let next_token = room.timer_token;
 
             if question_index >= room.quiz.questions.len() {
                 return;
             }
 
-            let question = &room.quiz.questions[question_index];
-            let correct_option_ids: Vec<String> = question
-                .options
-                .iter()
-                .filter(|o| o.is_correct)
-                .map(|o| o.id.clone())
-                .collect();
+            // Record answers in all_answers accumulator
+            room.all_answers.entry(question_index).or_default().extend(answers);
 
-            let mut option_counts: HashMap<String, u32> = HashMap::new();
-            for opt in &question.options {
-                option_counts.insert(opt.id.clone(), 0);
-            }
-            for ans in answers.values() {
-                *option_counts.entry(ans.option_id.clone()).or_insert(0) += 1;
+            // Update player rank histories
+            let mut player_list: Vec<_> = room.players.values_mut().collect();
+            player_list.sort_by(|a, b| b.score.cmp(&a.score));
+            for (rank_idx, player) in player_list.into_iter().enumerate() {
+                let rank = rank_idx + 1;
+                player.rank_history.push(rank);
             }
 
-            room.state = RoomState::QuestionResult {
-                question_index,
-                correct_option_ids: correct_option_ids.clone(),
-                option_counts: option_counts.clone(),
-                player_answers: answers.clone(),
-            };
-
-            if let Some(ref h_tx) = room.host_tx {
-                let _ = h_tx.send(ServerMessage::QuestionResult {
-                    question_index: question_index + 1,
-                    correct_option_ids: correct_option_ids.clone(),
-                    option_counts: option_counts.clone(),
-                    player_correct: None,
-                    points_awarded: None,
-                    total_score: None,
-                    streak: None,
-                });
-            }
-
-            for (pid, player) in &room.players {
-                if let Some(ref tx) = player.tx {
-                    let ans = answers.get(pid);
-                    let (correct, points) = match ans {
-                        Some(a) => (Some(a.is_correct), Some(a.points_awarded)),
-                        None => (Some(false), Some(0)),
-                    };
-
-                    let _ = tx.send(ServerMessage::QuestionResult {
-                        question_index: question_index + 1,
-                        correct_option_ids: correct_option_ids.clone(),
-                        option_counts: option_counts.clone(),
-                        player_correct: correct,
-                        points_awarded: points,
-                        total_score: Some(player.score),
-                        streak: Some(player.streak),
-                    });
-                }
+            let next_q = question_index + 1;
+            if next_q < room.quiz.questions.len() {
+                // Requirement: NO IMMEDIATE FEEDBACK!
+                // Do not reveal correct/incorrect answers. Move directly to the next question.
+                drop(room);
+                tokio::time::sleep(Duration::from_millis(800)).await;
+                GameRoom::start_question_intro(room_arc, next_q, next_token);
+            } else {
+                // Final question completed: Show final standings, scores, response times & answer reviews!
+                drop(room);
+                GameRoom::finalize_game(room_arc, next_token).await;
             }
         });
     }
 
-    pub fn host_advance_step(room_arc: Arc<RwLock<GameRoom>>, db_pool: DbPool) {
+    pub fn build_player_summary(&self, player_id: &str, final_rank: usize) -> Option<PlayerQuizSummary> {
+        let player = self.players.get(player_id)?;
+        let total_questions = self.quiz.questions.len();
+        let total_players = self.players.len();
+
+        let mut reviews = Vec::new();
+        for (q_idx, question) in self.quiz.questions.iter().enumerate() {
+            let correct_opt = question.options.iter().find(|o| o.is_correct);
+            let correct_opt_id = correct_opt.map(|o| o.id.clone()).unwrap_or_default();
+            let correct_opt_text = correct_opt.map(|o| o.option_text.clone()).unwrap_or_default();
+
+            let player_ans = self.all_answers.get(&q_idx).and_then(|ans_map| ans_map.get(player_id));
+
+            let (selected_opt_id, selected_opt_text, is_correct, points_awarded, response_time_ms) = match player_ans {
+                Some(ans) => {
+                    let opt_text = question.options.iter().find(|o| o.id == ans.option_id).map(|o| o.option_text.clone());
+                    (Some(ans.option_id.clone()), opt_text, ans.is_correct, ans.points_awarded, ans.response_time_ms)
+                }
+                None => {
+                    (None, None, false, 0, (question.time_limit_sec * 1000) as u64)
+                }
+            };
+
+            reviews.push(QuestionReviewItem {
+                question_id: question.id.clone(),
+                question_index: q_idx + 1,
+                question_text: question.question_text.clone(),
+                selected_option_id: selected_opt_id,
+                selected_option_text: selected_opt_text,
+                correct_option_id: correct_opt_id,
+                correct_option_text: correct_opt_text,
+                is_correct,
+                points_awarded,
+                response_time_ms,
+                time_limit_sec: question.time_limit_sec as u64,
+            });
+        }
+
+        let correct_count = player.correct_count;
+        let incorrect_count = total_questions.saturating_sub(correct_count);
+        let accuracy_percentage = if total_questions > 0 {
+            ((correct_count as f64 / total_questions as f64) * 1000.0).round() / 10.0
+        } else {
+            0.0
+        };
+
+        Some(PlayerQuizSummary {
+            total_score: player.score,
+            correct_count,
+            incorrect_count,
+            total_questions,
+            accuracy_percentage,
+            final_rank,
+            total_players,
+            total_time_ms: player.total_time_ms,
+            reviews,
+        })
+    }
+
+    pub async fn finalize_game(room_arc: Arc<RwLock<GameRoom>>, _token: u64) {
+        let mut room = room_arc.write().await;
+        let mut sorted_players: Vec<_> = room.players.values().collect();
+        sorted_players.sort_by(|a, b| b.score.cmp(&a.score));
+
+        let total_players = room.players.len();
+
+        let podium: Vec<PodiumEntry> = sorted_players
+            .iter()
+            .take(3)
+            .enumerate()
+            .map(|(idx, p)| PodiumEntry {
+                player_id: p.id.clone(),
+                nickname: p.nickname.clone(),
+                score: p.score,
+                rank: idx + 1,
+                correct_count: p.correct_count,
+                total_answered: p.total_answered,
+                total_time_ms: p.total_time_ms,
+            })
+            .collect();
+
+        let full_results: Vec<LeaderboardEntry> = sorted_players
+            .iter()
+            .enumerate()
+            .map(|(idx, p)| LeaderboardEntry {
+                player_id: p.id.clone(),
+                nickname: p.nickname.clone(),
+                score: p.score,
+                rank: idx + 1,
+                rank_change: 0,
+                streak: p.streak,
+                is_connected: p.is_connected,
+                total_time_ms: p.total_time_ms,
+            })
+            .collect();
+
+        room.state = RoomState::Podium {
+            podium: podium.clone(),
+            full_results: full_results.clone(),
+        };
+
+        // Broadcast to Host Screen
+        if let Some(ref h_tx) = room.host_tx {
+            let _ = h_tx.send(ServerMessage::Podium {
+                podium: podium.clone(),
+                full_results: full_results.clone(),
+                my_rank: None,
+                player_summary: None,
+            });
+        }
+
+        // Broadcast to each Player with their personal summary & answer review
+        for (pid, player) in &room.players {
+            if let Some(ref tx) = player.tx {
+                let my_rank = full_results.iter().position(|r| r.player_id == *pid).map(|i| i + 1).unwrap_or(1);
+                let summary = room.build_player_summary(pid, my_rank);
+
+                let _ = tx.send(ServerMessage::Podium {
+                    podium: podium.clone(),
+                    full_results: full_results.clone(),
+                    my_rank: Some(my_rank),
+                    player_summary: summary,
+                });
+            }
+        }
+
+        // Database Persistence
+        let game_id = room.game_id.clone();
+        let total_players_i64 = total_players as i64;
+        let db_results: Vec<FinalPlayerResult> = full_results
+            .iter()
+            .map(|r| {
+                let p = room.players.get(&r.player_id);
+                FinalPlayerResult {
+                    player_id: r.player_id.clone(),
+                    nickname: r.nickname.clone(),
+                    email: p.and_then(|pl| pl.email.clone()),
+                    total_score: r.score,
+                    final_rank: r.rank as i64,
+                    correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),
+                    total_answered: p.map(|pl| pl.total_answered as i64).unwrap_or(0),
+                }
+            })
+            .collect();
+
+        let mut answer_inserts = Vec::new();
+        for (q_idx, ans_map) in &room.all_answers {
+            if let Some(question) = room.quiz.questions.get(*q_idx) {
+                for (pid, ans) in ans_map {
+                    answer_inserts.push(crate::db::GameAnswerInsert {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        game_id: game_id.clone(),
+                        question_id: question.id.clone(),
+                        player_id: pid.clone(),
+                        option_id: ans.option_id.clone(),
+                        is_correct: ans.is_correct,
+                        points_awarded: ans.points_awarded,
+                        response_time_ms: ans.response_time_ms as i64,
+                    });
+                }
+            }
+        }
+
+        let db_pool = room.db_pool.clone();
+        tokio::spawn(async move {
+            let _ = db::update_game_status(&db_pool, &game_id, "completed", total_players_i64).await;
+            let _ = db::save_game_results(&db_pool, &game_id, &db_results).await;
+            let _ = db::save_game_answers(&db_pool, &answer_inserts).await;
+        });
+    }
+
+    pub fn host_advance_step(room_arc: Arc<RwLock<GameRoom>>, _db_pool: DbPool) {
         tokio::spawn(async move {
             let mut room = room_arc.write().await;
             room.last_activity = Instant::now();
@@ -234,190 +375,26 @@ impl GameRoom {
                 RoomState::QuestionResult { question_index, .. } => {
                     let q_idx = *question_index;
                     let next_q = q_idx + 1;
-
-                    // Update player rank histories and rankings in the background
-                    let mut player_list: Vec<_> = room.players.values_mut().collect();
-                    player_list.sort_by(|a, b| b.score.cmp(&a.score));
-
-                    for (rank_idx, player) in player_list.into_iter().enumerate() {
-                        let rank = rank_idx + 1;
-                        player.rank_history.push(rank);
-                    }
-
+                    room.timer_token += 1;
+                    let token = room.timer_token;
                     if next_q < room.quiz.questions.len() {
-                        // Advance directly to the next question without intermediate scoreboard
-                        room.timer_token += 1;
-                        let token = room.timer_token;
                         drop(room);
                         GameRoom::start_question_intro(room_arc, next_q, token);
                     } else {
-                        // Last question completed: Show the final scoreboard & podium!
-                        room.timer_token += 1;
-                        let mut sorted_players: Vec<_> = room.players.values().collect();
-                        sorted_players.sort_by(|a, b| b.score.cmp(&a.score));
-
-                        let podium: Vec<PodiumEntry> = sorted_players
-                            .iter()
-                            .take(3)
-                            .enumerate()
-                            .map(|(idx, p)| PodiumEntry {
-                                player_id: p.id.clone(),
-                                nickname: p.nickname.clone(),
-                                score: p.score,
-                                rank: idx + 1,
-                                correct_count: p.correct_count,
-                                total_answered: p.total_answered,
-                            })
-                            .collect();
-
-                        let full_results: Vec<LeaderboardEntry> = sorted_players
-                            .iter()
-                            .enumerate()
-                            .map(|(idx, p)| LeaderboardEntry {
-                                player_id: p.id.clone(),
-                                nickname: p.nickname.clone(),
-                                score: p.score,
-                                rank: idx + 1,
-                                rank_change: 0,
-                                streak: p.streak,
-                                is_connected: p.is_connected,
-                            })
-                            .collect();
-
-                        room.state = RoomState::Podium {
-                            podium: podium.clone(),
-                            full_results: full_results.clone(),
-                        };
-
-                        if let Some(ref h_tx) = room.host_tx {
-                            let _ = h_tx.send(ServerMessage::Podium {
-                                podium: podium.clone(),
-                                full_results: full_results.clone(),
-                                my_rank: None,
-                            });
-                        }
-
-                        for (pid, player) in &room.players {
-                            if let Some(ref tx) = player.tx {
-                                let my_rank = full_results.iter().position(|r| r.player_id == *pid).map(|i| i + 1);
-                                let _ = tx.send(ServerMessage::Podium {
-                                    podium: podium.clone(),
-                                    full_results: full_results.clone(),
-                                    my_rank,
-                                });
-                            }
-                        }
-
-                        let game_id = room.game_id.clone();
-                        let total_players = room.players.len() as i64;
-                        let db_results: Vec<FinalPlayerResult> = full_results
-                            .iter()
-                            .map(|r| {
-                                let p = room.players.get(&r.player_id);
-                                FinalPlayerResult {
-                                    player_id: r.player_id.clone(),
-                                    nickname: r.nickname.clone(),
-                                    email: p.and_then(|pl| pl.email.clone()),
-                                    total_score: r.score,
-                                    final_rank: r.rank as i64,
-                                    correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),
-                                    total_answered: p.map(|pl| pl.total_answered as i64).unwrap_or(0),
-                                }
-                            })
-                            .collect();
-
-                        tokio::spawn(async move {
-                            let _ = db::update_game_status(&db_pool, &game_id, "completed", total_players).await;
-                            let _ = db::save_game_results(&db_pool, &game_id, &db_results).await;
-                        });
+                        drop(room);
+                        GameRoom::finalize_game(room_arc, token).await;
                     }
                 }
                 RoomState::Leaderboard { question_index, .. } => {
                     let next_q = *question_index + 1;
+                    room.timer_token += 1;
+                    let token = room.timer_token;
                     if next_q < room.quiz.questions.len() {
-                        let token = room.timer_token;
                         drop(room);
                         GameRoom::start_question_intro(room_arc, next_q, token);
                     } else {
-                        room.timer_token += 1;
-                        let mut sorted_players: Vec<_> = room.players.values().collect();
-                        sorted_players.sort_by(|a, b| b.score.cmp(&a.score));
-
-                        let podium: Vec<PodiumEntry> = sorted_players
-                            .iter()
-                            .take(3)
-                            .enumerate()
-                            .map(|(idx, p)| PodiumEntry {
-                                player_id: p.id.clone(),
-                                nickname: p.nickname.clone(),
-                                score: p.score,
-                                rank: idx + 1,
-                                correct_count: p.correct_count,
-                                total_answered: p.total_answered,
-                            })
-                            .collect();
-
-                        let full_results: Vec<LeaderboardEntry> = sorted_players
-                            .iter()
-                            .enumerate()
-                            .map(|(idx, p)| LeaderboardEntry {
-                                player_id: p.id.clone(),
-                                nickname: p.nickname.clone(),
-                                score: p.score,
-                                rank: idx + 1,
-                                rank_change: 0,
-                                streak: p.streak,
-                                is_connected: p.is_connected,
-                            })
-                            .collect();
-
-                        room.state = RoomState::Podium {
-                            podium: podium.clone(),
-                            full_results: full_results.clone(),
-                        };
-
-                        if let Some(ref h_tx) = room.host_tx {
-                            let _ = h_tx.send(ServerMessage::Podium {
-                                podium: podium.clone(),
-                                full_results: full_results.clone(),
-                                my_rank: None,
-                            });
-                        }
-
-                        for (pid, player) in &room.players {
-                            if let Some(ref tx) = player.tx {
-                                let my_rank = full_results.iter().position(|r| r.player_id == *pid).map(|i| i + 1);
-                                let _ = tx.send(ServerMessage::Podium {
-                                    podium: podium.clone(),
-                                    full_results: full_results.clone(),
-                                    my_rank,
-                                });
-                            }
-                        }
-
-                        let game_id = room.game_id.clone();
-                        let total_players = room.players.len() as i64;
-                        let db_results: Vec<FinalPlayerResult> = full_results
-                            .iter()
-                            .map(|r| {
-                                let p = room.players.get(&r.player_id);
-                                FinalPlayerResult {
-                                    player_id: r.player_id.clone(),
-                                    nickname: r.nickname.clone(),
-                                    email: p.and_then(|pl| pl.email.clone()),
-                                    total_score: r.score,
-                                    final_rank: r.rank as i64,
-                                    correct_count: p.map(|pl| pl.correct_count as i64).unwrap_or(0),
-                                    total_answered: p.map(|pl| pl.total_answered as i64).unwrap_or(0),
-                                }
-                            })
-                            .collect();
-
-                        tokio::spawn(async move {
-                            let _ = db::update_game_status(&db_pool, &game_id, "completed", total_players).await;
-                            let _ = db::save_game_results(&db_pool, &game_id, &db_results).await;
-                            log::info!("Game {} results saved to SQLite successfully.", game_id);
-                        });
+                        drop(room);
+                        GameRoom::finalize_game(room_arc, token).await;
                     }
                 }
                 _ => {}

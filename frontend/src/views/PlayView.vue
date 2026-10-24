@@ -144,8 +144,9 @@ function handleQuickJoin() {
               <span class="glass-pill px-2.5 py-0.5 rounded-lg text-slate-300 font-mono text-xs font-bold">
                 PIN: {{ gameStore.roomPin || pin }}
               </span>
-              <span class="bg-gradient-to-r from-indigo-400 to-pink-400 bg-clip-text text-transparent font-black text-sm">
-                {{ gameStore.score }} pts
+              <span class="glass-pill px-2 py-0.5 rounded-lg text-indigo-300 font-mono text-xs font-bold">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse mr-1" />
+                Live
               </span>
             </div>
           </div>

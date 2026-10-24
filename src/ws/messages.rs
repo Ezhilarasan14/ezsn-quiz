@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::game::types::{LeaderboardEntry, OptionView, PodiumEntry, ThemeConfig};
+use crate::game::types::{LeaderboardEntry, OptionView, PlayerQuizSummary, PodiumEntry, ThemeConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LobbyPlayer {
@@ -185,6 +185,8 @@ pub enum ServerMessage {
         podium: Vec<PodiumEntry>,
         full_results: Vec<LeaderboardEntry>,
         my_rank: Option<usize>,
+        #[serde(default)]
+        player_summary: Option<PlayerQuizSummary>,
     },
     ThemeConfig {
         theme: ThemeConfig,
