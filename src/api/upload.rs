@@ -7,6 +7,8 @@ use std::fs;
 use std::path::PathBuf;
 use uuid::Uuid;
 
+use crate::api::auth::AuthenticatedAdmin;
+
 #[derive(Debug, Deserialize)]
 pub struct UploadRequest {
     pub filename: Option<String>,
@@ -28,7 +30,10 @@ pub fn get_upload_dir() -> PathBuf {
     path
 }
 
-pub async fn upload_file(body: web::Json<UploadRequest>) -> impl Responder {
+pub async fn upload_file(
+    _admin: AuthenticatedAdmin,
+    body: web::Json<UploadRequest>,
+) -> impl Responder {
     let raw_data = &body.data;
 
     // Detect format and extract pure base64

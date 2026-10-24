@@ -27,8 +27,8 @@ function getCount(optionId: string): number {
       <div
         class="glass-panel rounded-3xl p-5 sm:p-6 shadow-2xl border transition-all"
         :class="gameStore.lastAnswerCorrect
-          ? 'border-emerald-500/40 bg-gradient-to-r from-emerald-950/70 via-slate-900/80 to-slate-900/90 shadow-emerald-950/50'
-          : 'border-rose-500/40 bg-gradient-to-r from-rose-950/70 via-slate-900/80 to-slate-900/90 shadow-rose-950/50'"
+          ? 'border-emerald-500/40 bg-gradient-to-r from-emerald-950/70 via-purple-950/80 to-purple-950/90 shadow-emerald-950/50'
+          : 'border-rose-500/40 bg-gradient-to-r from-rose-950/70 via-purple-950/80 to-purple-950/90 shadow-rose-950/50'"
       >
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center space-x-3.5">
@@ -53,7 +53,7 @@ function getCount(optionId: string): number {
           </div>
 
           <div class="text-right shrink-0">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Score</span>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-300/80 block">Total Score</span>
             <span class="text-xl sm:text-3xl font-mono font-black text-white">
               {{ gameStore.score }}
             </span>
@@ -64,7 +64,7 @@ function getCount(optionId: string): number {
 
     <!-- Question Title Header -->
     <div class="text-center space-y-2">
-      <span class="glass-pill px-3.5 py-1 rounded-full text-xs font-bold text-slate-300 uppercase tracking-wider">
+      <span class="glass-pill px-3.5 py-1 rounded-full text-xs font-bold text-purple-200 uppercase tracking-wider">
         Answer Breakdown
       </span>
       <h2 class="text-xl sm:text-3xl font-black text-white tracking-tight">
@@ -81,7 +81,7 @@ function getCount(optionId: string): number {
           'glass-panel rounded-2xl p-4 sm:p-5 transition-all duration-300',
           isCorrect(opt.id)
             ? 'border-emerald-500/60 bg-emerald-950/40 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-950/40'
-            : 'border-white/5 bg-slate-950/40 opacity-70'
+            : 'border-purple-400/15 bg-purple-950/40 opacity-70'
         ]"
       >
         <div class="flex items-center justify-between mb-2.5">
@@ -104,17 +104,17 @@ function getCount(optionId: string): number {
             >
               ✓ Correct
             </span>
-            <span class="font-black text-xs sm:text-sm text-slate-300 font-mono">
+            <span class="font-black text-xs sm:text-sm text-purple-200 font-mono">
               {{ getCount(opt.id) }} {{ getCount(opt.id) === 1 ? 'vote' : 'votes' }}
             </span>
           </div>
         </div>
 
         <!-- Visual Bar Track -->
-        <div class="w-full h-2 rounded-full bg-slate-950/80 p-0.5 border border-white/5 overflow-hidden">
+        <div class="w-full h-2 rounded-full bg-purple-950/80 p-0.5 border border-purple-400/20 overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-500"
-            :class="isCorrect(opt.id) ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/50' : 'bg-slate-700'"
+            :class="isCorrect(opt.id) ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/50' : 'bg-purple-800/60'"
             :style="{ width: `${gameStore.playerCount > 0 ? (getCount(opt.id) / gameStore.playerCount) * 100 : 0}%` }"
           />
         </div>
@@ -124,13 +124,21 @@ function getCount(optionId: string): number {
     <!-- Host Control: Next Question Action -->
     <div v-if="gameStore.role === 'host'" class="flex justify-end pt-4">
       <Button
-        label="Next Question"
-        icon="pi pi-arrow-right"
+        :label="gameStore.questionIndex >= gameStore.totalQuestions ? 'Show Final Results' : 'Next Question'"
+        :icon="gameStore.questionIndex >= gameStore.totalQuestions ? 'pi pi-trophy' : 'pi pi-arrow-right'"
         iconPos="right"
         size="large"
-        class="bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 border border-white/20 font-black text-white px-8 py-3.5 rounded-2xl shadow-xl shadow-indigo-600/30 active:scale-98 transition-all"
+        class="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-300/30 font-black text-white px-8 py-3.5 rounded-2xl shadow-xl shadow-purple-900/40 active:scale-98 transition-all"
         @click="gameStore.nextQuestion"
       />
+    </div>
+
+    <!-- Player Waiting Indicator -->
+    <div v-if="gameStore.role === 'player'" class="flex items-center justify-center pt-4">
+      <div class="glass-panel rounded-2xl px-6 py-3.5 flex items-center space-x-3 border border-purple-400/20 shadow-lg">
+        <i class="pi pi-spin pi-spinner text-purple-300 text-base" />
+        <span class="text-sm font-bold text-purple-200">Waiting for host to continue...</span>
+      </div>
     </div>
   </div>
 </template>

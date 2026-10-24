@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
+use crate::api::auth::AuthenticatedAdmin;
 use crate::db::{self, models::*, DbPool};
 
 pub async fn list_quizzes(pool: web::Data<DbPool>) -> impl Responder {
@@ -23,7 +24,11 @@ pub async fn get_quiz(pool: web::Data<DbPool>, path: web::Path<String>) -> impl 
     }
 }
 
-pub async fn create_quiz(pool: web::Data<DbPool>, body: web::Json<CreateQuizRequest>) -> impl Responder {
+pub async fn create_quiz(
+    pool: web::Data<DbPool>,
+    _admin: AuthenticatedAdmin,
+    body: web::Json<CreateQuizRequest>,
+) -> impl Responder {
     let req = body.into_inner();
 
     if req.title.trim().is_empty() {
@@ -66,6 +71,7 @@ pub async fn create_quiz(pool: web::Data<DbPool>, body: web::Json<CreateQuizRequ
 
 pub async fn update_quiz(
     pool: web::Data<DbPool>,
+    _admin: AuthenticatedAdmin,
     path: web::Path<String>,
     body: web::Json<UpdateQuizRequest>,
 ) -> impl Responder {
@@ -102,7 +108,13 @@ pub async fn update_quiz(
     }
 
     match db::update_quiz(pool.get_ref(), &quiz_id, req).await {
-        Ok(true) => HttpResponse::Ok().json(serde_json::json!({ "message": "Quiz updated successfully" })),
+        Ok(true) => {
+            // Return the full updated quiz so the frontend can update its state
+            match db::get_quiz_by_id(pool.get_ref(), &quiz_id).await {
+                Ok(Some(updated_quiz)) => HttpResponse::Ok().json(updated_quiz),
+                _ => HttpResponse::Ok().json(serde_json::json!({ "id": quiz_id, "message": "Quiz updated successfully" })),
+            }
+        }
         Ok(false) => HttpResponse::NotFound().json(serde_json::json!({ "error": "Quiz not found" })),
         Err(e) => {
             log::error!("Failed to update quiz {}: {}", quiz_id, e);
@@ -111,7 +123,11 @@ pub async fn update_quiz(
     }
 }
 
-pub async fn delete_quiz(pool: web::Data<DbPool>, path: web::Path<String>) -> impl Responder {
+pub async fn delete_quiz(
+    pool: web::Data<DbPool>,
+    _admin: AuthenticatedAdmin,
+    path: web::Path<String>,
+) -> impl Responder {
     let quiz_id = path.into_inner();
     match db::delete_quiz(pool.get_ref(), &quiz_id).await {
         Ok(true) => HttpResponse::Ok().json(serde_json::json!({ "message": "Quiz deleted successfully" })),
@@ -123,7 +139,11 @@ pub async fn delete_quiz(pool: web::Data<DbPool>, path: web::Path<String>) -> im
     }
 }
 
-pub async fn duplicate_quiz(pool: web::Data<DbPool>, path: web::Path<String>) -> impl Responder {
+pub async fn duplicate_quiz(
+    pool: web::Data<DbPool>,
+    _admin: AuthenticatedAdmin,
+    path: web::Path<String>,
+) -> impl Responder {
     let quiz_id = path.into_inner();
     match db::duplicate_quiz(pool.get_ref(), &quiz_id).await {
         Ok(Some(new_id)) => HttpResponse::Created().json(serde_json::json!({

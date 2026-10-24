@@ -105,6 +105,7 @@ export type ServerMessage =
       type: 'answer_accepted';
       payload: {
         question_index: number;
+        response_time_ms?: number;
       };
     }
   | {

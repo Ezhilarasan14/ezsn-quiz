@@ -86,7 +86,11 @@ impl GameRoom {
 
             let (duration_secs, question_text, total_questions, options_view) = {
                 let q = &room.quiz.questions[q_idx];
-                let dur = (q.time_limit_sec as u64).max(5);
+                let dur = if room.question_time_secs > 0 {
+                    room.question_time_secs
+                } else {
+                    (q.time_limit_sec as u64).max(5)
+                };
                 let text = q.question_text.clone();
                 let tot = room.quiz.questions.len();
                 let opts: Vec<OptionView> = q
@@ -153,14 +157,13 @@ impl GameRoom {
             };
 
             room.timer_token += 1;
-            let next_token = room.timer_token;
 
             if question_index >= room.quiz.questions.len() {
                 return;
             }
 
             // Record answers in all_answers accumulator
-            room.all_answers.entry(question_index).or_default().extend(answers);
+            room.all_answers.entry(question_index).or_default().extend(answers.clone());
 
             // Update player rank histories
             let mut player_list: Vec<_> = room.players.values_mut().collect();
@@ -170,18 +173,63 @@ impl GameRoom {
                 player.rank_history.push(rank);
             }
 
-            let next_q = question_index + 1;
-            if next_q < room.quiz.questions.len() {
-                // Requirement: NO IMMEDIATE FEEDBACK!
-                // Do not reveal correct/incorrect answers. Move directly to the next question.
-                drop(room);
-                tokio::time::sleep(Duration::from_millis(800)).await;
-                GameRoom::start_question_intro(room_arc, next_q, next_token);
-            } else {
-                // Final question completed: Show final standings, scores, response times & answer reviews!
-                drop(room);
-                GameRoom::finalize_game(room_arc, next_token).await;
+            let question = &room.quiz.questions[question_index];
+            let correct_option_ids: Vec<String> = question
+                .options
+                .iter()
+                .filter(|o| o.is_correct)
+                .map(|o| o.id.clone())
+                .collect();
+
+            let mut option_counts: HashMap<String, u32> = HashMap::new();
+            for opt in &question.options {
+                option_counts.insert(opt.id.clone(), 0);
             }
+            for ans in answers.values() {
+                *option_counts.entry(ans.option_id.clone()).or_insert(0) += 1;
+            }
+
+            // Broadcast QuestionResult to Host Screen
+            if let Some(ref h_tx) = room.host_tx {
+                let _ = h_tx.send(ServerMessage::QuestionResult {
+                    question_index: question_index + 1,
+                    correct_option_ids: correct_option_ids.clone(),
+                    option_counts: option_counts.clone(),
+                    player_correct: None,
+                    points_awarded: None,
+                    total_score: None,
+                    streak: None,
+                });
+            }
+
+            // Broadcast QuestionResult to each player with personalized score/correctness
+            for (pid, player) in &room.players {
+                if let Some(ref tx) = player.tx {
+                    let ans = answers.get(pid);
+                    let (correct, points) = match ans {
+                        Some(a) => (Some(a.is_correct), Some(a.points_awarded)),
+                        None => (Some(false), Some(0)),
+                    };
+
+                    let _ = tx.send(ServerMessage::QuestionResult {
+                        question_index: question_index + 1,
+                        correct_option_ids: correct_option_ids.clone(),
+                        option_counts: option_counts.clone(),
+                        player_correct: correct,
+                        points_awarded: points,
+                        total_score: Some(player.score),
+                        streak: Some(player.streak),
+                    });
+                }
+            }
+
+            // Set room state to QuestionResult and WAIT for host to click Next Question
+            room.state = RoomState::QuestionResult {
+                question_index,
+                correct_option_ids,
+                option_counts,
+                player_answers: answers,
+            };
         });
     }
 
@@ -198,13 +246,19 @@ impl GameRoom {
 
             let player_ans = self.all_answers.get(&q_idx).and_then(|ans_map| ans_map.get(player_id));
 
+            let q_time_limit = if question.time_limit_sec > 0 {
+                question.time_limit_sec as u64
+            } else {
+                self.question_time_secs
+            };
+
             let (selected_opt_id, selected_opt_text, is_correct, points_awarded, response_time_ms) = match player_ans {
                 Some(ans) => {
                     let opt_text = question.options.iter().find(|o| o.id == ans.option_id).map(|o| o.option_text.clone());
                     (Some(ans.option_id.clone()), opt_text, ans.is_correct, ans.points_awarded, ans.response_time_ms)
                 }
                 None => {
-                    (None, None, false, 0, (question.time_limit_sec * 1000) as u64)
+                    (None, None, false, 0, q_time_limit * 1000)
                 }
             };
 
@@ -219,7 +273,7 @@ impl GameRoom {
                 is_correct,
                 points_awarded,
                 response_time_ms,
-                time_limit_sec: question.time_limit_sec as u64,
+                time_limit_sec: q_time_limit,
             });
         }
 
@@ -231,6 +285,8 @@ impl GameRoom {
             0.0
         };
 
+        let total_time_ms: u64 = reviews.iter().map(|r| r.response_time_ms).sum();
+
         Some(PlayerQuizSummary {
             total_score: player.score,
             correct_count,
@@ -239,7 +295,7 @@ impl GameRoom {
             accuracy_percentage,
             final_rank,
             total_players,
-            total_time_ms: player.total_time_ms,
+            total_time_ms,
             reviews,
         })
     }
@@ -365,6 +421,13 @@ impl GameRoom {
                 RoomState::Lobby => {
                     drop(room);
                     GameRoom::start_game(room_arc);
+                }
+                RoomState::QuestionIntro { question_index, .. } => {
+                    let q_idx = *question_index;
+                    room.timer_token += 1;
+                    let token = room.timer_token;
+                    drop(room);
+                    GameRoom::start_question_active(room_arc, q_idx, token);
                 }
                 RoomState::QuestionActive { question_index, .. } => {
                     let q_idx = *question_index;

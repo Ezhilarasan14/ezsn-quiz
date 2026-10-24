@@ -1,18 +1,19 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { api } from '@/services/api';
 import type { OrganizationConfig, ThemeConfig } from '@/types/quiz';
 
-export const MAIN_BRAND_LOGO = 'https://ezsnapps.in/landing_page/logo.png';
-export const MAIN_BRAND_NAME = 'EZSN Quiz';
+export const MAIN_BRAND_NAME = 'quiz ezsnapps';
 
 const DEFAULT_BRANDING: ThemeConfig = {
-  org_name: 'EZSN Quiz',
+  org_name: 'quiz ezsnapps',
+  host_name: 'Ezhil Arasan',
+  branch_name: 'Main Campus',
   logo_url: null,
-  primary_color: '#0F172A', // Navbar background color
+  primary_color: '#4F46E5',
   secondary_color: '#EC4899',
-  background_color: '#0B0F19',
-  button_color: '#4F46E5',
+  background_color: '#0a0416',
+  button_color: '#9333EA',
 };
 
 export const useBrandingStore = defineStore('branding', () => {
@@ -20,29 +21,30 @@ export const useBrandingStore = defineStore('branding', () => {
   const orgConfig = ref<OrganizationConfig | null>(null);
   const isLoading = ref(false);
 
-  // The only color that can change across the UI is the navigation bar background color
-  const navbarColor = computed(() => currentTheme.value.primary_color || '#0F172A');
-
   function applyTheme(theme: Partial<ThemeConfig>) {
-    const orgName = (theme.org_name && theme.org_name !== 'EZSN Quiz')
-      ? theme.org_name
-      : (orgConfig.value?.name || currentTheme.value.org_name || theme.org_name || 'EZSN Quiz');
+    const orgName = theme.org_name !== undefined && theme.org_name !== null && theme.org_name.trim() !== ''
+      ? theme.org_name.trim()
+      : (orgConfig.value?.name || currentTheme.value.org_name || 'quiz ezsnapps');
 
-    const logoUrl = theme.logo_url !== undefined && theme.logo_url !== null && theme.logo_url !== ''
-      ? theme.logo_url
+    const hostName = theme.host_name !== undefined && theme.host_name !== null && theme.host_name.trim() !== ''
+      ? theme.host_name.trim()
+      : (currentTheme.value.host_name || 'Ezhil Arasan');
+
+    const branchName = theme.branch_name !== undefined && theme.branch_name !== null
+      ? theme.branch_name.trim()
+      : (orgConfig.value?.branch_name || currentTheme.value.branch_name || 'Main Campus');
+
+    const logoUrl = theme.logo_url !== undefined
+      ? (theme.logo_url && theme.logo_url.trim() !== '' ? theme.logo_url.trim() : null)
       : (orgConfig.value?.logo_url || currentTheme.value.logo_url || null);
 
     currentTheme.value = {
       ...currentTheme.value,
-      ...theme,
       org_name: orgName,
+      host_name: hostName,
+      branch_name: branchName,
       logo_url: logoUrl,
     };
-
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      root.style.setProperty('--brand-navbar-bg', navbarColor.value);
-    }
   }
 
   async function fetchOrgConfig() {
@@ -52,11 +54,8 @@ export const useBrandingStore = defineStore('branding', () => {
       orgConfig.value = config;
       applyTheme({
         org_name: config.name,
+        branch_name: config.branch_name,
         logo_url: config.logo_url,
-        primary_color: config.primary_color,
-        secondary_color: config.secondary_color,
-        background_color: config.background_color,
-        button_color: config.button_color,
       });
     } catch (e) {
       console.warn('[Branding] Could not fetch organization config:', e);
@@ -72,11 +71,8 @@ export const useBrandingStore = defineStore('branding', () => {
       orgConfig.value = updated;
       applyTheme({
         org_name: updated.name,
+        branch_name: updated.branch_name,
         logo_url: updated.logo_url,
-        primary_color: updated.primary_color,
-        secondary_color: updated.secondary_color,
-        background_color: updated.background_color,
-        button_color: updated.button_color,
       });
       return updated;
     } finally {
@@ -89,10 +85,8 @@ export const useBrandingStore = defineStore('branding', () => {
   }
 
   return {
-    MAIN_BRAND_LOGO,
     MAIN_BRAND_NAME,
     currentTheme,
-    navbarColor,
     orgConfig,
     isLoading,
     applyTheme,

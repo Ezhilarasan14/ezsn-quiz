@@ -17,6 +17,8 @@ pub async fn list_quizzes(pool: &DbPool) -> Result<Vec<QuizSummary>, sqlx::Error
             q.theme_secondary_color,
             q.theme_bg_color,
             q.theme_btn_color,
+            q.host_name,
+            q.branch_name,
             q.created_at,
             q.updated_at
         FROM quizzes q
@@ -34,7 +36,7 @@ pub async fn list_quizzes(pool: &DbPool) -> Result<Vec<QuizSummary>, sqlx::Error
 pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizDetail>, sqlx::Error> {
     let quiz_row = sqlx::query(
         r#"
-        SELECT id, title, description, organization_id, theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, created_at, updated_at
+        SELECT id, title, description, organization_id, theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, host_name, branch_name, created_at, updated_at
         FROM quizzes
         WHERE id = $1
         "#,
@@ -57,6 +59,8 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
     let theme_secondary_color: Option<String> = row.get("theme_secondary_color");
     let theme_bg_color: Option<String> = row.get("theme_bg_color");
     let theme_btn_color: Option<String> = row.get("theme_btn_color");
+    let host_name: Option<String> = row.try_get("host_name").ok().flatten();
+    let branch_name: Option<String> = row.try_get("branch_name").ok().flatten();
     let created_at: chrono::NaiveDateTime = row.get("created_at");
     let updated_at: chrono::NaiveDateTime = row.get("updated_at");
 
@@ -107,6 +111,8 @@ pub async fn get_quiz_by_id(pool: &DbPool, quiz_id: &str) -> Result<Option<QuizD
         theme_secondary_color,
         theme_bg_color,
         theme_btn_color,
+        host_name,
+        branch_name,
         questions: question_details,
         created_at,
         updated_at,
@@ -121,10 +127,11 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
         r#"
         INSERT INTO quizzes (
             id, title, description, organization_id, 
-            theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color, 
+            theme_logo_url, theme_primary_color, theme_secondary_color, theme_bg_color, theme_btn_color,
+            host_name, branch_name,
             created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         "#,
     )
     .bind(&quiz_id)
@@ -136,6 +143,8 @@ pub async fn create_quiz(pool: &DbPool, req: CreateQuizRequest) -> Result<String
     .bind(&req.theme_secondary_color)
     .bind(&req.theme_bg_color)
     .bind(&req.theme_btn_color)
+    .bind(&req.host_name)
+    .bind(&req.branch_name)
     .execute(&mut *tx)
     .await?;
 
@@ -191,8 +200,9 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
         UPDATE quizzes
         SET title = $1, description = $2, organization_id = $3, 
             theme_logo_url = $4, theme_primary_color = $5, theme_secondary_color = $6, theme_bg_color = $7, theme_btn_color = $8,
+            host_name = $9, branch_name = $10,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
+        WHERE id = $11
         "#,
     )
     .bind(&req.title)
@@ -203,6 +213,8 @@ pub async fn update_quiz(pool: &DbPool, quiz_id: &str, req: UpdateQuizRequest) -
     .bind(&req.theme_secondary_color)
     .bind(&req.theme_bg_color)
     .bind(&req.theme_btn_color)
+    .bind(&req.host_name)
+    .bind(&req.branch_name)
     .bind(quiz_id)
     .execute(&mut *tx)
     .await?;
@@ -269,6 +281,28 @@ pub async fn delete_quiz(pool: &DbPool, quiz_id: &str) -> Result<bool, sqlx::Err
     Ok(res.rows_affected() > 0)
 }
 
+/// Check and delete duplicate quizzes, keeping only the earliest created record per title
+pub async fn deduplicate_quizzes(pool: &DbPool) -> Result<u64, sqlx::Error> {
+    let res = sqlx::query(
+        r#"
+        DELETE FROM quizzes
+        WHERE id NOT IN (
+            SELECT DISTINCT ON (title) id
+            FROM quizzes
+            ORDER BY title, created_at ASC
+        )
+        "#,
+    )
+    .execute(pool)
+    .await?;
+
+    let removed = res.rows_affected();
+    if removed > 0 {
+        log::info!("Cleaned up {} duplicate quiz records during database check/migration.", removed);
+    }
+    Ok(removed)
+}
+
 pub async fn duplicate_quiz(pool: &DbPool, quiz_id: &str) -> Result<Option<String>, sqlx::Error> {
     let original = match get_quiz_by_id(pool, quiz_id).await? {
         Some(q) => q,
@@ -285,6 +319,8 @@ pub async fn duplicate_quiz(pool: &DbPool, quiz_id: &str) -> Result<Option<Strin
         theme_secondary_color: original.theme_secondary_color,
         theme_bg_color: original.theme_bg_color,
         theme_btn_color: original.theme_btn_color,
+        host_name: original.host_name,
+        branch_name: original.branch_name,
         questions: original
             .questions
             .into_iter()

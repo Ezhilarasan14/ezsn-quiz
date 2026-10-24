@@ -39,6 +39,8 @@ export const useGameStore = defineStore('game', () => {
   const selectedOptionId = ref<string | null>(null);
   const answerSubmitted = ref<boolean>(false);
   const answerAccepted = ref<boolean>(false);
+  const currentQuestionResponseTimeMs = ref<number | null>(null);
+  let questionStartTimeMs = 0;
 
   // Host Realtime Metrics
   const answeredCount = ref<number>(0);
@@ -147,6 +149,8 @@ export const useGameStore = defineStore('game', () => {
         selectedOptionId.value = null;
         answerSubmitted.value = false;
         answerAccepted.value = false;
+        currentQuestionResponseTimeMs.value = null;
+        questionStartTimeMs = Date.now();
         correctOptionIds.value = [];
         answeredCount.value = 0;
         break;
@@ -158,11 +162,15 @@ export const useGameStore = defineStore('game', () => {
         questionText.value = msg.payload.question_text;
         timeLimitSecs.value = msg.payload.time_limit_sec;
         options.value = msg.payload.options;
+        questionStartTimeMs = Date.now();
         startCountdown(msg.payload.time_limit_sec);
         break;
 
       case 'answer_accepted':
         answerAccepted.value = true;
+        if (msg.payload.response_time_ms !== undefined) {
+          currentQuestionResponseTimeMs.value = msg.payload.response_time_ms;
+        }
         break;
 
       case 'host_answer_count_update':
@@ -172,6 +180,7 @@ export const useGameStore = defineStore('game', () => {
       case 'question_result':
         stopCountdown();
         gameState.value = 'REVEAL';
+        questionIndex.value = msg.payload.question_index;
         correctOptionIds.value = msg.payload.correct_option_ids;
         optionCounts.value = msg.payload.option_counts;
 
@@ -265,6 +274,7 @@ export const useGameStore = defineStore('game', () => {
     if (answerSubmitted.value || gameState.value !== 'QUESTION') return;
     selectedOptionId.value = optionId;
     answerSubmitted.value = true;
+    currentQuestionResponseTimeMs.value = Math.max(100, Date.now() - questionStartTimeMs);
     wsClient.send({
       type: 'player_submit_answer',
       payload: { question_id: `q_${questionIndex.value}`, option_id: optionId },
@@ -320,6 +330,7 @@ export const useGameStore = defineStore('game', () => {
     selectedOptionId,
     answerSubmitted,
     answerAccepted,
+    currentQuestionResponseTimeMs,
     answeredCount,
     correctOptionIds,
     optionCounts,

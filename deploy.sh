@@ -76,7 +76,7 @@ if [ ! -f "${APP_DIR}/.env" ]; then
     cat << 'ENVEOF' > "${APP_DIR}/.env"
 HOST=127.0.0.1
 PORT=8081
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz
+DATABASE_URL=postgres://username:password@localhost:5432/esan_quiz
 RUST_LOG=info
 CLEANUP_INTERVAL_SECS=60
 ROOM_ABANDONED_TIMEOUT_SECS=900
@@ -84,7 +84,13 @@ MAX_ROOM_LIFETIME_SECS=7200
 ENVEOF
 elif grep -q "sqlite:" "${APP_DIR}/.env" 2>/dev/null; then
     echo "  -> Upgrading ${APP_DIR}/.env from SQLite to PostgreSQL..."
-    sed -i 's|DATABASE_URL=sqlite:.*|DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz|g' "${APP_DIR}/.env"
+    sed -i 's|DATABASE_URL=sqlite:.*|DATABASE_URL=postgres://username:password@localhost:5432/esan_quiz|g' "${APP_DIR}/.env"
+fi
+
+# Ensure systemd service file is updated from SQLite to PostgreSQL
+if grep -q "sqlite:" "/etc/systemd/system/${SERVICE_NAME}.service" 2>/dev/null; then
+    echo "  -> Upgrading /etc/systemd/system/${SERVICE_NAME}.service from SQLite to PostgreSQL..."
+    sed -i 's|Environment=DATABASE_URL=sqlite:.*|Environment=DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz|g' "/etc/systemd/system/${SERVICE_NAME}.service"
 fi
 
 echo "  -> Setting permissions on ${APP_DIR}..."
@@ -92,6 +98,20 @@ mkdir -p "${APP_DIR}/uploads"
 chmod 755 "${APP_DIR}/${BINARY_NAME}"
 chown -R www-data:www-data "$APP_DIR"
 chmod 640 "${APP_DIR}/.env" 2>/dev/null || true
+
+# Ensure PostgreSQL user has schema public permissions (required for PostgreSQL 15+)
+if id postgres >/dev/null 2>&1; then
+    DB_URL=$(grep "^DATABASE_URL=" "${APP_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
+    if [ -n "$DB_URL" ]; then
+        DB_USER=$(echo "$DB_URL" | sed -E "s|.*://([^:]+):.*|\1|")
+        DB_NAME=$(echo "$DB_URL" | sed -E "s|.*/([^?]+).*|\1|")
+        if [ -n "$DB_USER" ] && [ -n "$DB_NAME" ] && [ "$DB_USER" != "postgres" ]; then
+            echo "  -> Ensuring PostgreSQL permissions on '${DB_NAME}' schema public for '${DB_USER}'..."
+            su - postgres -c "psql -d '${DB_NAME}' -c 'GRANT ALL ON SCHEMA public TO \"${DB_USER}\"; GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"${DB_USER}\"; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"${DB_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"${DB_USER}\"; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"${DB_USER}\";' 2>/dev/null || true"
+            su - postgres -c "psql -c 'ALTER DATABASE \"${DB_NAME}\" OWNER TO \"${DB_USER}\";' 2>/dev/null || true"
+        fi
+    fi
+fi
 
 systemctl daemon-reload
 

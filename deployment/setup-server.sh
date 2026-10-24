@@ -29,7 +29,7 @@ if [ ! -f "${APP_DIR}/.env" ]; then
     cat << 'ENVFILE' > "${APP_DIR}/.env"
 HOST=127.0.0.1
 PORT=8081
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz
+DATABASE_URL=postgres://username:password@localhost:5432/esan_quiz
 RUST_LOG=info
 CLEANUP_INTERVAL_SECS=60
 ROOM_ABANDONED_TIMEOUT_SECS=900

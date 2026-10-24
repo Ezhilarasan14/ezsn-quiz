@@ -8,8 +8,9 @@ use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn test_room_lifecycle_and_multiplayer_gameplay() {
+    dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+        .expect("DATABASE_URL must be configured in .env or environment to run tests");
     let pool = db::init_db(&db_url).await.expect("Failed to init postgres db");
     let manager = Arc::new(RoomManager::new(pool.clone()));
 
@@ -165,4 +166,7 @@ async fn test_room_lifecycle_and_multiplayer_gameplay() {
         assert_eq!(bob.score, 0, "Bob should have 0 points for incorrect answer");
         assert_eq!(bob.streak, 0);
     }
+
+    // Clean up test quiz
+    let _ = db::delete_quiz(&pool, &quiz_id).await;
 }

@@ -2,6 +2,7 @@ use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::api::auth::AuthenticatedAdmin;
 use crate::db::{self, DbPool};
 use crate::game::manager::RoomManager;
 use crate::game::types::GameStateKind;
@@ -31,6 +32,7 @@ pub struct RoomStatusResponse {
 pub async fn create_room(
     pool: web::Data<DbPool>,
     manager: web::Data<Arc<RoomManager>>,
+    _admin: AuthenticatedAdmin,
     body: web::Json<CreateRoomRequest>,
 ) -> impl Responder {
     let quiz_id = &body.quiz_id;

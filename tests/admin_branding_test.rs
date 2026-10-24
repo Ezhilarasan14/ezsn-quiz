@@ -4,8 +4,9 @@ use ezsn_quiz::db::models::{CreateOptionRequest, CreateQuestionRequest, CreateQu
 
 #[tokio::test]
 async fn test_admin_auth_and_branding_system() {
+    dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+        .expect("DATABASE_URL must be configured in .env or environment to run tests");
     let pool: DbPool = db::init_db(&db_url).await.expect("Failed to init postgres db");
 
     // 1. Verify default admin initialized
@@ -41,6 +42,7 @@ async fn test_admin_auth_and_branding_system() {
         &default_org.id,
         UpdateOrganizationRequest {
             name: "Acme High School".to_string(),
+            branch_name: Some("Downtown Campus".to_string()),
             logo_url: Some("/uploads/acme_logo.png".to_string()),
             primary_color: Some("#10b981".to_string()),
             secondary_color: Some("#06b6d4".to_string()),
@@ -52,6 +54,7 @@ async fn test_admin_auth_and_branding_system() {
     .expect("Failed to update organization");
 
     assert_eq!(updated_org.name, "Acme High School");
+    assert_eq!(updated_org.branch_name.as_deref(), Some("Downtown Campus"));
     assert_eq!(updated_org.logo_url.as_deref(), Some("/uploads/acme_logo.png"));
     assert_eq!(updated_org.primary_color, "#10b981");
 
@@ -87,4 +90,7 @@ async fn test_admin_auth_and_branding_system() {
     assert_eq!(fetched_quiz.theme_secondary_color.as_deref(), Some("#e11d48"));
     assert_eq!(fetched_quiz.theme_bg_color.as_deref(), Some("#431407"));
     assert_eq!(fetched_quiz.theme_btn_color.as_deref(), Some("#ea580c"));
+
+    // Clean up test quiz
+    let _ = db::delete_quiz(&pool, &quiz_id).await;
 }

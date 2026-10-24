@@ -2,34 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --brand-navbar-bg: #0F172A;
-}
-
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background-color: #070a13;
-  color: #F8FAFC;
+  background-color: #0a0416;
+  color: #f8fafc;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphism System */
+/* Purple Glassmorphism System */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  background: rgba(28, 12, 54, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(192, 132, 252, 0.18);
+  box-shadow: 0 25px 50px -12px rgba(10, 4, 22, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 0 20px -5px rgba(168, 85, 247, 0.12);
 }
 
 .glass-card {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  background: rgba(35, 15, 68, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(192, 132, 252, 0.15);
+  box-shadow: 0 15px 35px -10px rgba(10, 4, 22, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .glass-card-hover {
@@ -37,78 +33,80 @@ body {
 }
 
 .glass-card-hover:hover {
-  background: rgba(30, 41, 59, 0.65);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(50, 22, 94, 0.7);
+  border-color: rgba(216, 180, 254, 0.35);
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(99, 102, 241, 0.15);
+  box-shadow: 0 25px 50px -10px rgba(10, 4, 22, 0.8), 0 0 30px 0 rgba(168, 85, 247, 0.25);
 }
 
 .glass-input {
-  background: rgba(3, 7, 18, 0.65) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #f8fafc !important;
+  background: rgba(18, 7, 36, 0.75) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(192, 132, 252, 0.25) !important;
+  color: #ffffff !important;
   transition: all 0.2s ease !important;
 }
 
 .glass-input:focus {
-  border-color: rgba(99, 102, 241, 0.7) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
-  background: rgba(3, 7, 18, 0.85) !important;
+  border-color: rgba(216, 180, 254, 0.8) !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3), 0 0 20px 0 rgba(168, 85, 247, 0.25) !important;
+  background: rgba(25, 10, 50, 0.9) !important;
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  background: rgba(168, 85, 247, 0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(216, 180, 254, 0.25);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+  color: #f3e8ff;
 }
 
-/* Custom modern scrollbars */
+/* Custom modern scrollbars in deep purple */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #070a13;
+  background: #0a0416;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #3b1d6e;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #582a9f;
 }
 
 /* PrimeVue glass overrides */
 .p-dialog {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(26, 11, 48, 0.92) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(192, 132, 252, 0.25) !important;
   border-radius: 1.5rem !important;
-  color: #f8fafc !important;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px 0 rgba(99, 102, 241, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.9), 0 0 40px 0 rgba(168, 85, 247, 0.25) !important;
 }
 
 .p-dialog-header {
   background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #f8fafc !important;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.15) !important;
+  color: #ffffff !important;
   padding: 1.25rem 1.5rem !important;
 }
 
 .p-dialog-content {
   background: transparent !important;
   padding: 1.5rem !important;
+  color: #f3e8ff !important;
 }
 
 .p-dialog-footer {
   background: transparent !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid rgba(192, 132, 252, 0.15) !important;
   padding: 1rem 1.5rem !important;
 }
 
@@ -127,21 +125,39 @@ body {
 
 .p-message {
   border-radius: 0.85rem !important;
-  backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Glowing text gradients */
+.gradient-text-purple {
+  background: linear-gradient(135deg, #ffffff 0%, #e9d5ff 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-btn-purple {
+  background: linear-gradient(135deg, #7e22ce 0%, #a855f7 50%, #ec4899 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.4);
+}
+
+.gradient-btn-purple:hover {
+  background: linear-gradient(135deg, #9333ea 0%, #c084fc 50%, #f472b6 100%);
+  box-shadow: 0 15px 35px -5px rgba(168, 85, 247, 0.6);
 }
 
 /* Subtle glow pulse */
 @keyframes glow-pulse {
   0%, 100% {
-    opacity: 0.4;
+    opacity: 0.35;
     transform: scale(1);
   }
   50% {
-    opacity: 0.7;
-    transform: scale(1.05);
+    opacity: 0.65;
+    transform: scale(1.06);
   }
 }
 
 .animate-glow {
-  animation: glow-pulse 6s infinite ease-in-out;
+  animation: glow-pulse 7s infinite ease-in-out;
 }

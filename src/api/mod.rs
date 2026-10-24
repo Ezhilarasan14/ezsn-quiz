@@ -18,6 +18,12 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/auth/login", web::post().to(auth::login))
             .route("/auth/logout", web::post().to(auth::logout))
             .route("/auth/me", web::get().to(auth::me))
+            .route("/auth/google/url", web::get().to(auth::google_auth_url))
+            .route("/auth/google/callback", web::get().to(auth::google_callback))
+            // Admin Allowlist (RBAC protected)
+            .route("/admin/allowlist", web::get().to(auth::list_allowlist))
+            .route("/admin/allowlist", web::post().to(auth::add_allowlist_entry))
+            .route("/admin/allowlist/{email}", web::delete().to(auth::remove_allowlist_entry))
             // Organization & Branding
             .route("/organization", web::get().to(organization::get_org))
             .route("/organization", web::put().to(organization::update_org))

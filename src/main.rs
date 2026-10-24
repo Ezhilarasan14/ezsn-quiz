@@ -16,14 +16,26 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     let config = Config::from_env();
-    log::info!("Starting ezsn-quiz server configuration: host={}, port={}, db={}", config.host, config.port, config.database_url);
+    if let Err(e) = config.validate() {
+        log::error!("CRITICAL: Configuration validation failed: {}", e);
+        eprintln!("CRITICAL: Configuration validation failed: {}", e);
+        std::process::exit(1);
+    }
+
+    log::info!(
+        "Server configuration loaded & validated: host={}, port={}, quiz_question_time_seconds={}s, db={}",
+        config.host,
+        config.port,
+        config.quiz_question_time_seconds,
+        config.masked_database_url()
+    );
 
     // Initialize database pool and run migrations with detailed error logging
     let pool = match db::init_db(&config.database_url).await {
         Ok(p) => p,
         Err(e) => {
-            log::error!("CRITICAL: Failed to initialize database at '{}': {}", config.database_url, e);
-            eprintln!("CRITICAL: Failed to initialize database at '{}': {}", config.database_url, e);
+            log::error!("CRITICAL: Failed to initialize database: {}", e);
+            eprintln!("CRITICAL: Failed to initialize database: {}", e);
             std::process::exit(1);
         }
     };
@@ -32,8 +44,11 @@ async fn main() -> std::io::Result<()> {
         log::warn!("Could not verify default admin account: {}", e);
     }
 
-    // Initialize in-memory Game Room Manager
-    let manager = Arc::new(RoomManager::new(pool.clone()));
+    // Initialize in-memory Game Room Manager with configured question answer time
+    let manager = Arc::new(RoomManager::with_question_time(
+        pool.clone(),
+        config.quiz_question_time_seconds,
+    ));
 
     let bind_addr = format!("{}:{}", config.host, config.port);
     log::info!("Server listening on http://{}", bind_addr);

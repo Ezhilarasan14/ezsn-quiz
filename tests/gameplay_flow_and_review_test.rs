@@ -8,8 +8,9 @@ use tokio::sync::mpsc;
 
 #[tokio::test]
 async fn test_gameplay_flow_no_immediate_feedback_and_final_review() {
+    dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+        .expect("DATABASE_URL must be configured in .env or environment to run tests");
     let pool = db::init_db(&db_url).await.expect("Failed to init postgres db");
     let manager = Arc::new(RoomManager::new(pool.clone()));
 
@@ -98,8 +99,9 @@ async fn test_gameplay_flow_no_immediate_feedback_and_final_review() {
     // Verify AnswerAccepted received
     let msg1 = player_rx.recv().await.unwrap();
     match msg1 {
-        ServerMessage::AnswerAccepted { question_index } => {
+        ServerMessage::AnswerAccepted { question_index, response_time_ms } => {
             assert_eq!(question_index, 1);
+            assert!(response_time_ms <= 10_000);
         }
         _ => panic!("Expected AnswerAccepted"),
     }
@@ -169,4 +171,7 @@ async fn test_gameplay_flow_no_immediate_feedback_and_final_review() {
     assert_eq!(persisted_review.reviews.len(), 2);
     assert!(persisted_review.reviews[0].is_correct);
     assert!(!persisted_review.reviews[1].is_correct);
+
+    // Clean up test quiz
+    let _ = db::delete_quiz(&pool, &quiz_id).await;
 }

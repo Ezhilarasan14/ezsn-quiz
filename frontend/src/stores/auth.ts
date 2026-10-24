@@ -8,8 +8,44 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<AdminUser | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const googleConfigured = ref(true);
 
-  const isAuthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!user.value || !!token.value);
+  const isSuperAdmin = computed(() => user.value?.role === 'superadmin');
+
+  async function checkAuth(): Promise<boolean> {
+    try {
+      const res = await api.getMe();
+      user.value = res.admin;
+      return true;
+    } catch {
+      if (token.value) {
+        logout();
+      }
+      return false;
+    }
+  }
+
+  async function initiateGoogleLogin(): Promise<boolean> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const res = await api.getGoogleAuthUrl();
+      if (!res.configured || !res.url) {
+        googleConfigured.value = false;
+        error.value = res.message || 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.';
+        return false;
+      }
+      googleConfigured.value = true;
+      window.location.href = res.url;
+      return true;
+    } catch (e: any) {
+      error.value = e.message || 'Failed to initiate Google sign-in';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   async function login(username: string, password: string): Promise<boolean> {
     isLoading.value = true;
@@ -25,18 +61,6 @@ export const useAuthStore = defineStore('auth', () => {
       return false;
     } finally {
       isLoading.value = false;
-    }
-  }
-
-  async function checkAuth(): Promise<boolean> {
-    if (!token.value) return false;
-    try {
-      const res = await api.getMe();
-      user.value = res.admin;
-      return true;
-    } catch {
-      logout();
-      return false;
     }
   }
 
@@ -57,9 +81,12 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isLoading,
     error,
+    googleConfigured,
     isAuthenticated,
-    login,
+    isSuperAdmin,
     checkAuth,
+    initiateGoogleLogin,
+    login,
     logout,
   };
 });

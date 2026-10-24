@@ -33,9 +33,17 @@ onMounted(async () => {
     if (data) {
       title.value = data.title;
       description.value = data.description || '';
-      questions.value = data.questions.map((q) => ({
-        ...q,
-        options: q.options || [],
+      questions.value = data.questions.map((q: any) => ({
+        id: q.id,
+        question_text: q.question_text,
+        time_limit_secs: q.time_limit_sec ?? q.time_limit_secs ?? 20,
+        points: q.points ?? 1000,
+        order_num: q.order_index ?? q.order_num ?? 0,
+        options: (q.options || []).map((o: any) => ({
+          id: o.id,
+          text: o.option_text ?? o.text ?? '',
+          is_correct: !!o.is_correct,
+        })),
       }));
     }
   } else {
@@ -124,7 +132,7 @@ async function handleSave() {
         <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
           {{ quizId ? 'Edit Quiz Competition' : 'Create New Quiz' }}
         </h1>
-        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Configure question prompts, correct answers, and countdown limits</p>
+        <p class="text-xs sm:text-sm text-purple-300/80 mt-0.5">Configure question prompts, correct answers, and countdown limits</p>
       </div>
 
       <div class="flex items-center space-x-3 w-full sm:w-auto">
@@ -132,14 +140,14 @@ async function handleSave() {
           label="Cancel"
           text
           severity="secondary"
-          class="glass-pill text-slate-300 hover:text-white px-4 py-2"
+          class="glass-pill text-purple-200 hover:text-white px-4 py-2"
           @click="router.push('/admin')"
         />
         <Button
           label="Save Quiz"
           icon="pi pi-check"
           :loading="isSaving"
-          class="flex-1 sm:flex-none bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 border border-white/20 font-black text-white px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30"
+          class="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-300/30 font-black text-white px-6 py-2.5 rounded-xl shadow-lg shadow-purple-900/40"
           @click="handleSave"
         />
       </div>
@@ -152,13 +160,13 @@ async function handleSave() {
     <!-- General Quiz Info Card -->
     <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
       <div class="space-y-1.5">
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Quiz Title <span class="text-rose-400">*</span></label>
-        <InputText v-model="title" placeholder="e.g. Science & Technology Championship" class="glass-input w-full font-bold text-base py-3 rounded-xl" />
+        <label class="text-xs font-bold uppercase tracking-wider text-purple-200">Quiz Title <span class="text-pink-400">*</span></label>
+        <InputText v-model="title" placeholder="e.g. Science & Technology Championship" class="glass-input w-full font-bold text-base py-3 rounded-xl placeholder:text-purple-300/30 text-white" />
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-300">Description</label>
-        <InputText v-model="description" placeholder="Brief summary for players..." class="glass-input w-full text-sm py-2.5 rounded-xl" />
+        <label class="text-xs font-bold uppercase tracking-wider text-purple-200">Description</label>
+        <InputText v-model="description" placeholder="Brief summary for players..." class="glass-input w-full text-sm py-2.5 rounded-xl placeholder:text-purple-300/30 text-purple-100" />
       </div>
     </div>
 
@@ -167,7 +175,7 @@ async function handleSave() {
       <div class="flex items-center justify-between px-1">
         <div class="flex items-center space-x-2">
           <h2 class="text-xl font-black text-white tracking-tight">Questions</h2>
-          <span class="glass-pill px-2.5 py-0.5 rounded-full text-xs font-bold text-indigo-300">
+          <span class="glass-pill px-2.5 py-0.5 rounded-full text-xs font-bold text-purple-200">
             {{ questions.length }}
           </span>
         </div>
@@ -176,7 +184,7 @@ async function handleSave() {
           label="Add Question"
           icon="pi pi-plus"
           size="small"
-          class="glass-panel hover:bg-white/10 text-indigo-300 border border-indigo-500/30 font-bold rounded-xl px-4 py-2 text-xs"
+          class="glass-panel hover:bg-purple-500/15 text-purple-200 border border-purple-400/30 font-bold rounded-xl px-4 py-2 text-xs"
           @click="addQuestion"
         />
       </div>
@@ -187,12 +195,12 @@ async function handleSave() {
         class="glass-panel rounded-3xl p-5 sm:p-7 space-y-5 shadow-xl transition-all"
       >
         <div class="flex items-center justify-between">
-          <span class="text-xs sm:text-sm font-extrabold text-indigo-300 glass-pill px-3 py-1 rounded-full border border-indigo-500/30">
+          <span class="text-xs sm:text-sm font-extrabold text-purple-200 glass-pill px-3 py-1 rounded-full border border-purple-400/30">
             Question {{ qIdx + 1 }}
           </span>
 
           <div class="flex items-center space-x-3">
-            <select v-model.number="q.time_limit_secs" class="glass-input text-xs font-bold text-slate-300 rounded-xl px-3 py-1.5 cursor-pointer">
+            <select v-model.number="q.time_limit_secs" class="glass-input text-xs font-bold text-purple-200 rounded-xl px-3 py-1.5 cursor-pointer">
               <option :value="10">⏱️ 10 seconds</option>
               <option :value="20">⏱️ 20 seconds</option>
               <option :value="30">⏱️ 30 seconds</option>
@@ -213,17 +221,17 @@ async function handleSave() {
 
         <!-- Question Text Prompt -->
         <div class="space-y-1.5">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Prompt / Question Text</label>
+          <label class="text-xs font-bold uppercase tracking-wider text-purple-300/80">Prompt / Question Text</label>
           <InputText
             v-model="q.question_text"
             placeholder="Type your question prompt here..."
-            class="glass-input w-full font-black text-base sm:text-lg text-white py-3 rounded-xl"
+            class="glass-input w-full font-black text-base sm:text-lg text-white py-3 rounded-xl placeholder:text-purple-300/30"
           />
         </div>
 
         <!-- Options (4 Answer Tiles) -->
         <div class="space-y-2 pt-1">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-300/80 block">
             Options (Select correct radio button)
           </span>
 
@@ -235,7 +243,7 @@ async function handleSave() {
                 'flex items-center space-x-3 p-3 rounded-2xl border transition-all glass-card',
                 opt.is_correct
                   ? 'border-emerald-500/60 bg-emerald-950/40 ring-2 ring-emerald-500/30'
-                  : 'border-white/5 hover:border-white/10'
+                  : 'border-purple-400/15 hover:border-purple-400/30'
               ]"
             >
               <!-- Geometric icon symbol badge -->
@@ -258,7 +266,7 @@ async function handleSave() {
               <InputText
                 v-model="opt.text"
                 :placeholder="`Option ${optIdx + 1}`"
-                class="w-full p-inputtext-sm bg-transparent border-none text-white text-sm font-bold focus:ring-0 placeholder:text-slate-600"
+                class="w-full p-inputtext-sm bg-transparent border-none text-white text-sm font-bold focus:ring-0 placeholder:text-purple-300/30"
               />
             </div>
           </div>

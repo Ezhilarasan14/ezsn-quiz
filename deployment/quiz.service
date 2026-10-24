@@ -7,11 +7,11 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/quiz
-EnvironmentFile=-/var/www/quiz/.env
 Environment=PORT=8081
 Environment=HOST=127.0.0.1
-Environment=DATABASE_URL=sqlite:/var/www/quiz/quiz.db
+Environment=DATABASE_URL=postgres://postgres:postgres@localhost:5432/esan_quiz
 Environment=RUST_LOG=info
+EnvironmentFile=-/var/www/quiz/.env
 ExecStart=/var/www/quiz/ezsn_quiz
 Restart=always
 RestartSec=3

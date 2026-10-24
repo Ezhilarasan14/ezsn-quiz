@@ -11,13 +11,20 @@ use uuid::Uuid;
 pub struct RoomManager {
     pub rooms: Arc<RwLock<HashMap<String, Arc<RwLock<GameRoom>>>>>,
     pub db_pool: DbPool,
+    pub question_time_secs: u64,
 }
 
 impl RoomManager {
     pub fn new(db_pool: DbPool) -> Self {
+        let config = crate::config::Config::from_env();
+        Self::with_question_time(db_pool, config.quiz_question_time_seconds)
+    }
+
+    pub fn with_question_time(db_pool: DbPool, question_time_secs: u64) -> Self {
         let manager = Self {
             rooms: Arc::new(RwLock::new(HashMap::new())),
-            db_pool: db_pool.clone(),
+            db_pool,
+            question_time_secs: if question_time_secs == 0 { 5 } else { question_time_secs },
         };
 
         // Start background cleaner task
@@ -49,7 +56,20 @@ impl RoomManager {
         // Fetch organization branding for the game session
         let organization = crate::db::organizations::get_default_organization(&self.db_pool).await.ok();
 
-        let room = GameRoom::new(pin.clone(), game_id.clone(), host_token.clone(), quiz, organization, self.db_pool.clone());
+        let mut quiz_configured = quiz;
+        for q in &mut quiz_configured.questions {
+            q.time_limit_sec = self.question_time_secs as i64;
+        }
+
+        let room = GameRoom::new(
+            pin.clone(),
+            game_id.clone(),
+            host_token.clone(),
+            quiz_configured,
+            organization,
+            self.db_pool.clone(),
+            self.question_time_secs,
+        );
         let room_arc = Arc::new(RwLock::new(room));
         rooms.insert(pin.clone(), room_arc);
 

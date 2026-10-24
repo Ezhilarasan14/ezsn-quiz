@@ -159,6 +159,8 @@ pub enum ServerMessage {
     },
     AnswerAccepted {
         question_index: usize,
+        #[serde(default)]
+        response_time_ms: u64,
     },
     AnswerRejected {
         reason: String,

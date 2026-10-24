@@ -36,17 +36,52 @@ export const useQuizStore = defineStore('quiz', () => {
     }
   }
 
+  /**
+   * Transform frontend Question[] shape into the backend CreateQuizRequest shape.
+   * Frontend uses: options[].text, time_limit_secs, order_num
+   * Backend expects: options[].option_text, time_limit_sec (no trailing 's')
+   */
+  function toApiPayload(quiz: Partial<QuizDetail>) {
+    return {
+      title: quiz.title ?? '',
+      description: quiz.description ?? null,
+      organization_id: (quiz as any).organization_id ?? null,
+      theme_logo_url: quiz.theme_logo_url ?? null,
+      theme_primary_color: quiz.theme_primary_color ?? null,
+      theme_secondary_color: quiz.theme_secondary_color ?? null,
+      theme_bg_color: quiz.theme_bg_color ?? null,
+      theme_btn_color: quiz.theme_btn_color ?? null,
+      host_name: (quiz as any).host_name ?? null,
+      branch_name: (quiz as any).branch_name ?? null,
+      questions: (quiz.questions ?? []).map((q: any) => ({
+        question_text: q.question_text ?? q.text ?? '',
+        text: q.question_text ?? q.text ?? '',
+        time_limit_sec: q.time_limit_secs ?? q.time_limit_sec ?? 20,
+        time_limit_secs: q.time_limit_secs ?? q.time_limit_sec ?? 20,
+        points: q.points ?? 1000,
+        options: (q.options ?? [])
+          .filter((o: any) => (o.text ?? o.option_text ?? '').trim().length > 0)
+          .map((o: any) => ({
+            option_text: o.option_text ?? o.text ?? '',
+            text: o.text ?? o.option_text ?? '',
+            is_correct: !!o.is_correct,
+          })),
+      })),
+    };
+  }
+
   async function saveQuiz(quiz: Partial<QuizDetail>): Promise<string | null> {
     isLoading.value = true;
     error.value = null;
     try {
+      const payload = toApiPayload(quiz);
       if (quiz.id) {
-        const updated = await api.updateQuiz(quiz.id, quiz);
+        const updated = await api.updateQuiz(quiz.id, payload);
         currentQuiz.value = updated;
         await fetchQuizzes();
         return updated.id;
       } else {
-        const created = await api.createQuiz(quiz);
+        const created = await api.createQuiz(payload);
         await fetchQuizzes();
         return created.id;
       }

@@ -2,8 +2,9 @@ use ezsn_quiz::db::{self, models::*, FinalPlayerResult};
 
 #[tokio::test]
 async fn test_database_crud_and_history() {
+    dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/esan_quiz".to_string());
+        .expect("DATABASE_URL must be configured in .env or environment to run database tests");
     let pool = db::init_db(&db_url)
         .await
         .expect("Failed to init postgres db");
@@ -140,9 +141,11 @@ async fn test_database_crud_and_history() {
     assert!(s.quizzes_played >= 1);
     assert!(s.wins_count >= 1);
 
-    // 7. Delete quiz
+    // 7. Delete quiz and duplicate
     let deleted = db::delete_quiz(&pool, &quiz_id).await.expect("Failed to delete quiz");
     assert!(deleted);
     let check_deleted = db::get_quiz_by_id(&pool, &quiz_id).await.expect("Failed to fetch deleted");
     assert!(check_deleted.is_none());
+
+    let _ = db::delete_quiz(&pool, &dup_id).await;
 }

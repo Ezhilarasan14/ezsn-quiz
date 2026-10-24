@@ -27,6 +27,7 @@ pub struct GameRoom {
     pub created_at: Instant,
     pub last_activity: Instant,
     pub timer_token: u64,
+    pub question_time_secs: u64,
 }
 
 impl GameRoom {
@@ -37,6 +38,7 @@ impl GameRoom {
         quiz: QuizDetail,
         organization: Option<Organization>,
         db_pool: DbPool,
+        question_time_secs: u64,
     ) -> Self {
         Self {
             pin,
@@ -52,6 +54,7 @@ impl GameRoom {
             created_at: Instant::now(),
             last_activity: Instant::now(),
             timer_token: 0,
+            question_time_secs: if question_time_secs == 0 { 5 } else { question_time_secs },
         }
     }
 
@@ -78,6 +81,16 @@ impl GameRoom {
             .or(org_primary)
             .or_else(|| Some("#0F172A".to_string()));
 
+        let branch_name = self.organization.as_ref()
+            .and_then(|o| o.branch_name.clone())
+            .filter(|s| !s.is_empty())
+            .or_else(|| self.quiz.branch_name.clone().filter(|s| !s.is_empty()))
+            .or_else(|| Some("Main Campus".to_string()));
+
+        let host_name = self.quiz.host_name.clone()
+            .filter(|s| !s.is_empty())
+            .or_else(|| Some("Ezhil Arasan".to_string()));
+
         ThemeConfig {
             logo_url,
             primary_color,
@@ -85,6 +98,8 @@ impl GameRoom {
             background_color: self.quiz.theme_bg_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#0f172a".to_string())),
             button_color: self.quiz.theme_btn_color.clone().filter(|s| !s.is_empty()).or_else(|| Some("#3b82f6".to_string())),
             org_name: Some(org_name),
+            host_name,
+            branch_name,
         }
     }
 

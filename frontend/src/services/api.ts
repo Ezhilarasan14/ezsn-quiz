@@ -1,5 +1,5 @@
 import type { QuizSummary, QuizDetail, OrganizationConfig } from '@/types/quiz';
-import type { LoginResponse } from '@/types/auth';
+import type { AdminAllowlistEntry, AdminUser, GoogleAuthUrlResponse, LoginResponse } from '@/types/auth';
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -20,7 +20,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...options.headers,
   };
 
-  const response = await fetch(endpoint, { ...options, headers });
+  const response = await fetch(endpoint, {
+    credentials: 'include',
+    ...options,
+    headers,
+  });
   if (!response.ok) {
     let errMsg = `Request failed: ${response.statusText}`;
     try {
@@ -41,16 +45,29 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  // Auth
+  // Auth & Google Single Sign-On
+  getGoogleAuthUrl: () => request<GoogleAuthUrlResponse>('/api/auth/google/url'),
   login: (credentials: { username: string; password: string }) =>
     request<LoginResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
-  getMe: () => request<{ admin: { id: string; username: string; organization_id: string } }>('/api/auth/me'),
+  getMe: () => request<{ admin: AdminUser; organization?: any }>('/api/auth/me'),
   logout: () =>
     request<{ success: boolean }>('/api/auth/logout', {
       method: 'POST',
+    }),
+
+  // Admin Allowlist (RBAC)
+  getAllowlist: () => request<AdminAllowlistEntry[]>('/api/admin/allowlist'),
+  addAllowlistEntry: (data: { email: string; role?: string; notes?: string }) =>
+    request<AdminAllowlistEntry>('/api/admin/allowlist', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  removeAllowlistEntry: (email: string) =>
+    request<{ status: string }>(`/api/admin/allowlist/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
     }),
 
   // Organization Branding
@@ -64,12 +81,12 @@ export const api = {
   // Quizzes
   getQuizzes: () => request<QuizSummary[]>('/api/quizzes'),
   getQuiz: (id: string) => request<QuizDetail>(`/api/quizzes/${id}`),
-  createQuiz: (quiz: Partial<QuizDetail>) =>
+  createQuiz: (quiz: any) =>
     request<{ id: string }>('/api/quizzes', {
       method: 'POST',
       body: JSON.stringify(quiz),
     }),
-  updateQuiz: (id: string, quiz: Partial<QuizDetail>) =>
+  updateQuiz: (id: string, quiz: any) =>
     request<QuizDetail>(`/api/quizzes/${id}`, {
       method: 'PUT',
       body: JSON.stringify(quiz),

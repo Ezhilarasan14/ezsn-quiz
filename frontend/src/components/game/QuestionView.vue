@@ -33,18 +33,20 @@ const optionStyles = [
 <template>
   <div class="max-w-5xl mx-auto space-y-6 py-4 sm:py-8 px-4">
     <!-- Header with progress, Organization Logo, & live answer count -->
-    <div class="flex flex-wrap items-center justify-between gap-3 text-slate-300">
+    <div class="flex flex-wrap items-center justify-between gap-3 text-purple-200">
       <div class="flex items-center space-x-3">
-        <span class="px-3.5 py-1 rounded-full glass-pill text-indigo-300 font-extrabold text-xs sm:text-sm border border-indigo-500/30">
-          Question {{ (gameStore.questionIndex || 0) + 1 }} of {{ gameStore.totalQuestions || 1 }}
+        <span class="px-3.5 py-1 rounded-full glass-pill text-purple-200 font-extrabold text-xs sm:text-sm border border-purple-400/30">
+          Question {{ gameStore.questionIndex || 1 }} of {{ gameStore.totalQuestions || 1 }}
         </span>
 
         <!-- Organization Logo Badge during Question -->
         <img
           v-if="brandingStore.currentTheme.logo_url"
           :src="brandingStore.currentTheme.logo_url"
-          alt="Organization Logo"
+          alt=""
+          role="presentation"
           class="h-6 w-auto max-w-[100px] object-contain rounded opacity-90 hidden sm:inline"
+          @error="(e: any) => e.target.style.display = 'none'"
         />
       </div>
 
@@ -62,34 +64,34 @@ const optionStyles = [
 
     <!-- Question Card -->
     <div class="glass-panel rounded-3xl p-6 sm:p-10 text-center shadow-2xl relative overflow-hidden">
-      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-32 bg-indigo-500/20 blur-3xl pointer-events-none" />
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-32 bg-purple-600/25 blur-3xl pointer-events-none" />
       <h2 class="relative text-2xl sm:text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">
         {{ gameStore.questionText || 'Loading question...' }}
       </h2>
     </div>
 
-    <!-- 4 Options Grid (Host Projector Display) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+    <!-- 4 Options Grid (Responsive for mobile & host screen) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4 pt-1">
       <div
         v-for="(opt, idx) in gameStore.options"
         :key="opt.id"
         :class="[
-          'relative overflow-hidden rounded-2xl p-4 sm:p-6 text-white font-extrabold text-lg sm:text-xl flex items-center space-x-4 shadow-xl border border-white/20 transition-all bg-gradient-to-br',
+          'relative overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white font-extrabold text-sm sm:text-lg flex items-center space-x-3 sm:space-x-4 shadow-xl border border-white/20 transition-all bg-gradient-to-br',
           optionStyles[idx % 4].bg,
         ]"
       >
         <!-- Glass shine highlight -->
-        <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-2xl" />
+        <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl sm:rounded-t-2xl" />
 
         <!-- Geometry symbol icon badge -->
         <div
-          class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-black border shadow-inner shrink-0"
+          class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-xl font-black border shadow-inner shrink-0"
           :class="optionStyles[idx % 4].iconBg"
         >
           {{ optionStyles[idx % 4].icon }}
         </div>
 
-        <span class="flex-1 break-words leading-snug drop-shadow">
+        <span class="flex-1 break-words leading-snug drop-shadow text-xs sm:text-base">
           {{ opt.text }}
         </span>
       </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { MAIN_BRAND_LOGO } from '@/stores/branding';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
@@ -12,7 +11,6 @@ const router = useRouter();
 
 const pin = ref('');
 const nickname = ref(localStorage.getItem('ezsn_player_name') || '');
-const email = ref(localStorage.getItem('ezsn_player_email') || '');
 const errorMessage = ref('');
 
 onMounted(() => {
@@ -27,7 +25,6 @@ function handleJoin() {
   errorMessage.value = '';
   const cleanPin = pin.value.trim().replace(/\D/g, '');
   const cleanNick = nickname.value.trim();
-  const cleanEmail = email.value.trim();
 
   if (!cleanPin || cleanPin.length < 4) {
     errorMessage.value = 'Please enter a valid 6-digit Game PIN';
@@ -38,18 +35,14 @@ function handleJoin() {
     return;
   }
 
-  // Persist locally for recurring quizzes
+  // Persist nickname locally for recurring quizzes
   localStorage.setItem('ezsn_player_name', cleanNick);
-  if (cleanEmail) {
-    localStorage.setItem('ezsn_player_email', cleanEmail);
-  }
 
   router.push({
     path: '/play',
     query: {
       pin: cleanPin,
       nickname: cleanNick,
-      ...(cleanEmail ? { email: cleanEmail } : {}),
     },
   });
 }
@@ -62,24 +55,22 @@ function handleJoin() {
       <div class="text-center space-y-3">
         <div class="flex justify-center mb-2">
           <div class="relative group">
-            <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-30 blur-lg group-hover:opacity-60 transition duration-500" />
-            <img
-              :src="MAIN_BRAND_LOGO"
-              alt="EZSN Quiz Main Logo"
-              class="relative h-16 sm:h-20 w-auto object-contain filter drop-shadow-2xl group-hover:scale-105 transition-transform duration-300"
-            />
+            <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 opacity-40 blur-xl group-hover:opacity-70 transition duration-500" />
+            <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl glass-panel border border-purple-400/30 flex items-center justify-center text-3xl sm:text-4xl shadow-2xl group-hover:scale-105 transition-transform duration-300">
+              ⚡
+            </div>
           </div>
         </div>
 
-        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full glass-pill text-indigo-300 text-xs font-bold uppercase tracking-wider">
-          <i class="pi pi-bolt text-indigo-400" />
+        <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full glass-pill text-purple-200 text-xs font-bold uppercase tracking-wider">
+          <i class="pi pi-bolt text-purple-300" />
           <span>Real-time Live Multiplayer</span>
         </div>
 
         <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
           Enter The Arena
         </h1>
-        <p class="text-slate-400 text-xs sm:text-sm font-medium max-w-xs mx-auto">
+        <p class="text-purple-200/80 text-xs sm:text-sm font-medium max-w-xs mx-auto">
           Type your Game PIN and screen name to jump directly into the competition.
         </p>
       </div>
@@ -93,16 +84,16 @@ function handleJoin() {
 
           <!-- Game PIN Input -->
           <div class="space-y-1.5">
-            <label for="pin" class="block text-xs font-bold uppercase tracking-wider text-slate-300">
+            <label for="pin" class="block text-xs font-bold uppercase tracking-wider text-purple-200">
               Game PIN
             </label>
             <div class="relative">
-              <i class="pi pi-hashtag absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg" />
+              <i class="pi pi-hashtag absolute left-4 top-1/2 -translate-y-1/2 text-purple-400 text-lg" />
               <InputText
                 id="pin"
                 v-model="pin"
                 placeholder="e.g. 826896"
-                class="glass-input w-full pl-12 py-3.5 text-center font-mono font-black text-2xl tracking-widest rounded-xl placeholder:text-slate-600 placeholder:text-base placeholder:tracking-normal"
+                class="glass-input w-full pl-12 py-3.5 text-center font-mono font-black text-2xl tracking-widest rounded-xl placeholder:text-purple-300/30 text-white"
                 maxlength="6"
                 autofocus
               />
@@ -111,42 +102,20 @@ function handleJoin() {
 
           <!-- Nickname Input -->
           <div class="space-y-1.5">
-            <label for="nickname" class="block text-xs font-bold uppercase tracking-wider text-slate-300">
-              Your Nickname <span class="text-rose-400">*</span>
+            <label for="nickname" class="block text-xs font-bold uppercase tracking-wider text-purple-200">
+              Your Nickname <span class="text-pink-400">*</span>
             </label>
             <div class="relative">
-              <i class="pi pi-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg" />
+              <i class="pi pi-user absolute left-4 top-1/2 -translate-y-1/2 text-purple-400 text-lg" />
               <InputText
                 id="nickname"
                 v-model="nickname"
                 placeholder="Enter your screen name (e.g. Alex)"
-                class="glass-input w-full pl-12 py-3 rounded-xl font-bold placeholder:text-slate-600"
+                class="glass-input w-full pl-12 py-3 rounded-xl font-bold placeholder:text-purple-300/30 text-white"
                 maxlength="20"
                 required
               />
             </div>
-          </div>
-
-          <!-- Email ID (Optional, for persistent history) -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between">
-              <label for="email" class="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                Email Address <span class="text-[10px] text-indigo-400 font-semibold normal-case">(Saves stats)</span>
-              </label>
-            </div>
-            <div class="relative">
-              <i class="pi pi-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg" />
-              <InputText
-                id="email"
-                v-model="email"
-                type="email"
-                placeholder="alex@example.com (optional)"
-                class="glass-input w-full pl-12 py-2.5 rounded-xl text-sm placeholder:text-slate-600"
-              />
-            </div>
-            <p class="text-[11px] text-slate-500 px-1 leading-relaxed">
-              Track your cumulative points, badges, and accuracy across all quizzes.
-            </p>
           </div>
 
           <!-- Submit Button -->
@@ -156,7 +125,7 @@ function handleJoin() {
             icon="pi pi-arrow-right"
             iconPos="right"
             size="large"
-            class="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-pink-600 hover:from-indigo-500 hover:to-pink-500 border border-white/20 font-black text-white py-3.5 rounded-xl shadow-xl shadow-indigo-600/30 transition-all duration-200 active:scale-98 mt-2"
+            class="w-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 border border-purple-300/30 font-black text-white py-3.5 rounded-xl shadow-xl shadow-purple-900/40 transition-all duration-200 active:scale-98 mt-2"
           />
         </form>
       </div>
@@ -164,39 +133,39 @@ function handleJoin() {
       <!-- Feature Badges Showcase (Responsive Glass Cards) -->
       <div class="grid grid-cols-3 gap-2.5 text-center">
         <div class="glass-card rounded-2xl p-3 space-y-1">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm font-bold">
+          <div class="w-8 h-8 mx-auto rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-sm font-bold">
             <i class="pi pi-bolt" />
           </div>
           <span class="text-[11px] font-bold text-white block">Sub-100ms</span>
-          <span class="text-[10px] text-slate-400 block">Instant WS</span>
+          <span class="text-[10px] text-purple-300/70 block">Instant WS</span>
         </div>
 
         <div class="glass-card rounded-2xl p-3 space-y-1">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
+          <div class="w-8 h-8 mx-auto rounded-lg bg-fuchsia-500/20 text-fuchsia-300 flex items-center justify-center text-sm font-bold">
             <i class="pi pi-qrcode" />
           </div>
           <span class="text-[11px] font-bold text-white block">QR Direct</span>
-          <span class="text-[10px] text-slate-400 block">Camera Join</span>
+          <span class="text-[10px] text-purple-300/70 block">Camera Join</span>
         </div>
 
         <div class="glass-card rounded-2xl p-3 space-y-1">
-          <div class="w-8 h-8 mx-auto rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+          <div class="w-8 h-8 mx-auto rounded-lg bg-pink-500/20 text-pink-300 flex items-center justify-center text-sm font-bold">
             <i class="pi pi-trophy" />
           </div>
           <span class="text-[11px] font-bold text-white block">Podiums</span>
-          <span class="text-[10px] text-slate-400 block">Live Results</span>
+          <span class="text-[10px] text-purple-300/70 block">Live Results</span>
         </div>
       </div>
 
       <!-- Quick Nav Links -->
-      <div class="flex items-center justify-center space-x-6 text-xs font-semibold text-slate-400 pt-2">
-        <router-link to="/admin" class="hover:text-indigo-400 flex items-center space-x-1.5 transition-colors">
-          <i class="pi pi-shield text-indigo-400" />
+      <div class="flex items-center justify-center space-x-6 text-xs font-semibold text-purple-300/80 pt-2">
+        <router-link to="/admin" class="hover:text-white flex items-center space-x-1.5 transition-colors">
+          <i class="pi pi-shield text-purple-400" />
           <span>Host Console / Admin</span>
         </router-link>
-        <span class="text-slate-700">•</span>
-        <router-link to="/history" class="hover:text-indigo-400 flex items-center space-x-1.5 transition-colors">
-          <i class="pi pi-chart-line text-indigo-400" />
+        <span class="text-purple-500/40">•</span>
+        <router-link to="/history" class="hover:text-white flex items-center space-x-1.5 transition-colors">
+          <i class="pi pi-chart-line text-purple-400" />
           <span>Player Rankings</span>
         </router-link>
       </div>

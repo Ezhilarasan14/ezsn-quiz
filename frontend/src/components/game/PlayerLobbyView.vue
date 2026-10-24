@@ -27,35 +27,35 @@ const brandingStore = useBrandingStore();
         <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
           You're in the Competition!
         </h1>
-        <p class="text-slate-300 text-sm font-semibold">
-          Playing as <span class="text-indigo-400 font-extrabold text-base">{{ gameStore.nickname }}</span>
-          <span v-if="gameStore.playerEmail" class="text-xs text-slate-400 block font-mono mt-0.5">
+        <p class="text-purple-200 text-sm font-semibold">
+          Playing as <span class="text-purple-300 font-extrabold text-base">{{ gameStore.nickname }}</span>
+          <span v-if="gameStore.playerEmail" class="text-xs text-purple-300/80 block font-mono mt-0.5">
             {{ gameStore.playerEmail }}
           </span>
         </p>
       </div>
 
       <!-- Waiting Status Box -->
-      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-2 border border-white/10">
-        <div class="flex items-center justify-center space-x-2 text-indigo-400 font-bold text-sm">
+      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-2 border border-purple-400/20">
+        <div class="flex items-center justify-center space-x-2 text-purple-300 font-bold text-sm">
           <i class="pi pi-spin pi-spinner text-base" />
           <span>Waiting for host to start the quiz...</span>
         </div>
-        <p class="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+        <p class="text-xs text-purple-200/80 leading-relaxed max-w-sm mx-auto">
           Keep your phone awake! Four color-coded answer buttons will appear here the moment the first question begins.
         </p>
       </div>
 
       <!-- Live Contestants Count -->
-      <div class="flex items-center justify-center space-x-2 text-xs font-semibold text-slate-400 pt-2 border-t border-white/10">
-        <i class="pi pi-users text-indigo-400" />
+      <div class="flex items-center justify-center space-x-2 text-xs font-semibold text-purple-300/80 pt-2 border-t border-purple-400/20">
+        <i class="pi pi-users text-purple-400" />
         <span>{{ gameStore.playerCount }} {{ gameStore.playerCount === 1 ? 'contestant' : 'contestants' }} in arena</span>
       </div>
     </div>
 
     <!-- Contestants Arena Chips (Read-only list) -->
     <div v-if="gameStore.players.length > 1" class="space-y-2.5">
-      <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block px-1">Other Contestants</span>
+      <span class="text-xs font-bold uppercase tracking-wider text-purple-300/80 block px-1">Other Contestants</span>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
         <div
           v-for="player in gameStore.players"
@@ -63,10 +63,10 @@ const brandingStore = useBrandingStore();
           class="glass-card p-3 rounded-xl flex items-center space-x-2.5 truncate"
           :class="{ 'border-emerald-500/50 bg-emerald-950/30 ring-1 ring-emerald-500/30': player.nickname === gameStore.nickname }"
         >
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center font-black text-xs text-white uppercase shrink-0 shadow">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center font-black text-xs text-white uppercase shrink-0 shadow">
             {{ player.nickname.slice(0, 2) }}
           </div>
-          <span class="font-bold text-xs truncate" :class="player.nickname === gameStore.nickname ? 'text-emerald-400' : 'text-slate-200'">
+          <span class="font-bold text-xs truncate" :class="player.nickname === gameStore.nickname ? 'text-emerald-400' : 'text-purple-100'">
             {{ player.nickname }} {{ player.nickname === gameStore.nickname ? '(You)' : '' }}
           </span>
         </div>

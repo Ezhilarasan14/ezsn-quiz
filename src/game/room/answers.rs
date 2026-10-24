@@ -42,8 +42,8 @@ impl GameRoom {
 
         let elapsed_ms = started_at.elapsed().as_millis() as u64;
         let total_duration_ms = duration_secs * 1000;
-        if elapsed_ms > total_duration_ms + 1000 {
-            return Err("Time is up! Your answer was submitted too late.".to_string());
+        if elapsed_ms > total_duration_ms {
+            return Err("Time is up! Answers are locked for this question.".to_string());
         }
 
         // Validate option & check correctness
@@ -77,6 +77,7 @@ impl GameRoom {
             if let Some(ref tx) = player.tx {
                 let _ = tx.send(ServerMessage::AnswerAccepted {
                     question_index: q_idx + 1,
+                    response_time_ms: elapsed_ms,
                 });
             }
         }

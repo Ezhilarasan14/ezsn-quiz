@@ -46,6 +46,7 @@ export interface QuizDetail {
 export interface OrganizationConfig {
   id: string;
   name: string;
+  branch_name?: string | null;
   logo_url: string | null;
   primary_color: string;
   secondary_color: string;
@@ -61,4 +62,6 @@ export interface ThemeConfig {
   background_color: string;
   button_color: string;
   org_name: string;
+  host_name?: string | null;
+  branch_name?: string | null;
 }

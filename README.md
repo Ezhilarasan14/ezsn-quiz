@@ -1,6 +1,6 @@
 # EZSN Quiz - Real-Time Multiplayer Quiz Platform
 
-A high-performance, Kahoot-inspired real-time multiplayer quiz web application written in **Rust**, with embedded frontend assets, **SQLite** persistence, and **WebSockets**.
+A high-performance, Kahoot-inspired real-time multiplayer quiz web application written in **Rust**, with embedded frontend assets, **PostgreSQL** persistence, and **WebSockets**.
 
 The entire application runs as a **single standalone binary** with zero external runtime dependencies (no Node.js or frontend web server required).
 
@@ -37,7 +37,7 @@ The entire application runs as a **single standalone binary** with zero external
 - **Rank Change Indicators**: Displays rank transitions ($+1$, $-1$, streak badges).
 - **Personalized Player Controller View**: Players see their exact rank and score updates directly on their phones.
 - **Podium Celebration**: Olympic-style 1st, 2nd, 3rd place animated pillars with medal icons, fanfare audio, and confetti particles.
-- **Persistent Game History**: Saves completed games and player scoreboards to SQLite.
+- **Persistent Game History**: Saves completed games and player scoreboards to PostgreSQL.
 
 ### 5. Vibrant, Responsive UI & Web Audio
 - **Vibrant Kahoot Palette**: Red ($\blacktriangle$), Blue ($\blacklozenge$), Yellow ($\CIRCLE$), Green ($\blacksquare$).
@@ -53,8 +53,8 @@ The entire application runs as a **single standalone binary** with zero external
 |---|---|
 | **Backend** | Rust 1.92+, Actix Web 4, Tokio async runtime |
 | **Real-time** | WebSockets (`actix-ws`) with async unbounded channels |
-| **Database** | SQLite + SQLx (with WAL mode, migrations, foreign keys) |
-| **Frontend** | HTML5, Tailwind CSS, Vanilla JavaScript, Web Audio API |
+| **Database** | PostgreSQL + SQLx (with connection pooling and migrations) |
+| **Frontend** | Vue 3, PrimeVue, Tailwind CSS, Pinia, Web Audio API |
 | **Asset Embedding** | `rust-embed` (embedded directly into the compiled binary) |
 | **Serialization** | Serde and `serde_json` |
 
@@ -65,7 +65,7 @@ The entire application runs as a **single standalone binary** with zero external
 ```text
 ezsn-quiz/
 ├── Cargo.toml                  # Rust dependencies and package configuration
-├── migrations/                 # SQLx SQLite migrations
+├── migrations/                 # SQLx PostgreSQL migrations
 │   ├── 20261023000001_create_tables.sql
 │   └── 20261023000002_seed_quizzes.sql
 ├── src/
@@ -74,7 +74,7 @@ ezsn-quiz/
 │   ├── config.rs               # Environment and server configuration
 │   ├── static_files.rs         # rust-embed static asset handler
 │   ├── db/
-│   │   ├── mod.rs              # SQLite connection pool and CRUD queries
+│   │   ├── mod.rs              # PostgreSQL connection pool and CRUD queries
 │   │   └── models.rs           # Database models and DTOs
 │   ├── game/
 │   │   ├── mod.rs              # Game module exports
@@ -91,18 +91,13 @@ ezsn-quiz/
 │       ├── quizzes.rs          # Quizzes CRUD API endpoints
 │       ├── rooms.rs            # Room creation and verification endpoints
 │       └── history.rs          # Game history and standings API
-├── static/                     # Embedded frontend assets
-│   ├── index.html              # Home landing & player join
-│   ├── host.html               # Big screen presenter view
-│   ├── play.html               # Mobile controller player screen
-│   ├── edit.html               # Quiz creator & editor
-│   ├── history.html            # Past completed games & leaderboards
-│   ├── css/styles.css          # Theme styles, button shapes, podium pillars
-│   └── js/
-│       ├── audio.js            # Web Audio API sound synthesizer
-│       ├── confetti.js         # Canvas confetti animation
-│       ├── common.js           # Toast alerts, API helpers, WebSocket wrapper
-│       ├── home.js             # Landing page interaction
+├── frontend/                   # Vue 3 + PrimeVue Single Page Application
+│   ├── src/
+│   │   ├── components/         # Reusable glassmorphic UI & game components
+│   │   ├── views/              # HomeView, PlayView, HostView, AdminView, etc.
+│   │   ├── stores/             # Pinia state stores (game, auth, branding)
+│   │   └── services/           # REST API & Web Audio services
+│   └── dist/                   # Bundled production assets embedded into binary
 │       ├── host.js             # Presenter screen controller
 │       ├── play.js             # Player controller logic
 │       ├── editor.js           # Quiz editor interactive form
@@ -154,7 +149,7 @@ Environment variables can be set directly or via a `.env` file:
 |---|---|---|
 | `PORT` | `8081` | Port for the HTTP and WebSocket server |
 | `HOST` | `0.0.0.0` | Bind host address |
-| `DATABASE_URL` | `sqlite:quiz.db` | SQLite database connection string |
+| `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/esan_quiz` | PostgreSQL database connection string |
 | `RUST_LOG` | `info` | Logging verbosity (`info`, `debug`, `trace`) |
 
 ---
@@ -293,7 +288,7 @@ The platform is designed to effortlessly handle dozens of simultaneous game room
    cargo test --test load_test
    ```
 2. **Resource Efficiency**: Active game sessions are managed with thread-safe `Arc<RwLock<GameRoom>>` structures in memory.
-3. **Database Scalability**: SQLite runs with Write-Ahead Logging (`WAL`) mode and non-blocking asynchronous queries via `sqlx`.
+3. **Database Scalability**: PostgreSQL runs with connection pooling and non-blocking asynchronous queries via `sqlx`.
 
 ---
 

@@ -93,6 +93,10 @@ pub struct ThemeConfig {
     pub background_color: Option<String>,
     pub button_color: Option<String>,
     pub org_name: Option<String>,
+    #[serde(default)]
+    pub host_name: Option<String>,
+    #[serde(default)]
+    pub branch_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
