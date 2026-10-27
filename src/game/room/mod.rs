@@ -22,12 +22,15 @@ pub struct GameRoom {
     pub db_pool: DbPool,
     pub state: RoomState,
     pub host_tx: Option<mpsc::UnboundedSender<ServerMessage>>,
+    pub host_connection_id: Option<String>,
     pub players: HashMap<String, PlayerSession>,
     pub all_answers: HashMap<usize, HashMap<String, PlayerAnswer>>,
     pub created_at: Instant,
     pub last_activity: Instant,
     pub timer_token: u64,
     pub question_time_secs: u64,
+    pub room_abandoned_timeout_secs: u64,
+    pub max_room_lifetime_secs: u64,
 }
 
 impl GameRoom {
@@ -39,6 +42,8 @@ impl GameRoom {
         organization: Option<Organization>,
         db_pool: DbPool,
         question_time_secs: u64,
+        room_abandoned_timeout_secs: u64,
+        max_room_lifetime_secs: u64,
     ) -> Self {
         Self {
             pin,
@@ -49,12 +54,15 @@ impl GameRoom {
             db_pool,
             state: RoomState::Lobby,
             host_tx: None,
+            host_connection_id: None,
             players: HashMap::new(),
             all_answers: HashMap::new(),
             created_at: Instant::now(),
             last_activity: Instant::now(),
             timer_token: 0,
-            question_time_secs: if question_time_secs == 0 { 5 } else { question_time_secs },
+            question_time_secs: if question_time_secs == 0 { 20 } else { question_time_secs },
+            room_abandoned_timeout_secs: if room_abandoned_timeout_secs == 0 { 1800 } else { room_abandoned_timeout_secs },
+            max_room_lifetime_secs: if max_room_lifetime_secs == 0 { 18000 } else { max_room_lifetime_secs },
         }
     }
 
@@ -103,14 +111,33 @@ impl GameRoom {
         }
     }
 
+    pub fn touch(&mut self) {
+        self.last_activity = Instant::now();
+    }
+
     pub fn is_abandoned(&self) -> bool {
+        // Absolute maximum lifetime safety cap (e.g. 5 hours)
+        if self.created_at.elapsed() > Duration::from_secs(self.max_room_lifetime_secs) {
+            return true;
+        }
+
         let inactive_duration = self.last_activity.elapsed();
-        if self.host_tx.is_none() && inactive_duration > Duration::from_secs(900) {
+
+        // If host is disconnected and room has been inactive for abandoned timeout (e.g. 30 mins)
+        if self.host_tx.is_none() && inactive_duration > Duration::from_secs(self.room_abandoned_timeout_secs) {
             return true;
         }
-        if inactive_duration > Duration::from_secs(7200) {
+
+        // If room has no host AND no connected players, and inactive for abandoned timeout
+        if self.host_tx.is_none() && self.active_player_count() == 0 && inactive_duration > Duration::from_secs(self.room_abandoned_timeout_secs) {
             return true;
         }
+
+        // Safety idle timeout: if completely inactive (no answers, no host clicks, no pings) for 3 hours
+        if inactive_duration > Duration::from_secs(10800) {
+            return true;
+        }
+
         false
     }
 

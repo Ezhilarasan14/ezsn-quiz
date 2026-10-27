@@ -86,10 +86,12 @@ impl GameRoom {
 
             let (duration_secs, question_text, total_questions, options_view) = {
                 let q = &room.quiz.questions[q_idx];
-                let dur = if room.question_time_secs > 0 {
+                let dur = if q.time_limit_sec > 0 {
+                    q.time_limit_sec as u64
+                } else if room.question_time_secs > 0 {
                     room.question_time_secs
                 } else {
-                    (q.time_limit_sec as u64).max(5)
+                    20
                 };
                 let text = q.question_text.clone();
                 let tot = room.quiz.questions.len();
@@ -114,6 +116,7 @@ impl GameRoom {
                 player_answers: HashMap::new(),
             };
 
+            let q_id = room.quiz.questions[q_idx].id.clone();
             let active_msg = ServerMessage::QuestionActive {
                 question_index: q_idx + 1,
                 total_questions,
@@ -121,6 +124,7 @@ impl GameRoom {
                 time_limit_sec: duration_secs,
                 options: options_view,
                 already_answered: false,
+                question_id: q_id,
             };
 
             room.broadcast(&active_msg);
@@ -248,8 +252,10 @@ impl GameRoom {
 
             let q_time_limit = if question.time_limit_sec > 0 {
                 question.time_limit_sec as u64
-            } else {
+            } else if self.question_time_secs > 0 {
                 self.question_time_secs
+            } else {
+                20
             };
 
             let (selected_opt_id, selected_opt_text, is_correct, points_awarded, response_time_ms) = match player_ans {

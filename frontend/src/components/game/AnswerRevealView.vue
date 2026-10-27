@@ -99,6 +99,12 @@ function getCount(optionId: string): number {
 
           <div class="flex items-center space-x-2 shrink-0">
             <span
+              v-if="gameStore.role === 'player' && gameStore.selectedOptionId === opt.id"
+              class="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30 font-bold text-xs"
+            >
+              Your Pick
+            </span>
+            <span
               v-if="isCorrect(opt.id)"
               class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-black text-xs"
             >

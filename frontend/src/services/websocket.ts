@@ -13,7 +13,10 @@ export class WebSocketClient {
   private pingInterval: number | null = null;
   private isExplicitlyClosed = false;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
+  private lastPingSent = 0;
+  private lastPongReceived = Date.now();
+  private boundOnlineHandler: () => void;
+  private boundVisibilityHandler: () => void;
 
   constructor(url?: string) {
     if (url) {
@@ -21,6 +24,26 @@ export class WebSocketClient {
     } else {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       this.url = `${protocol}//${window.location.host}/ws`;
+    }
+
+    this.boundOnlineHandler = () => {
+      console.log('[WS] Network online detected. Triggering immediate reconnect check.');
+      this.reconnectImmediately();
+    };
+
+    this.boundVisibilityHandler = () => {
+      if (document.visibilityState === 'visible' && !this.isExplicitlyClosed) {
+        const timeSincePong = Date.now() - this.lastPongReceived;
+        if (!this.isConnected() || (this.lastPingSent > 0 && timeSincePong > 30000)) {
+          console.log('[WS] Tab returned to foreground and connection is stale/closed. Reconnecting immediately.');
+          this.reconnectImmediately();
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', this.boundOnlineHandler);
+      document.addEventListener('visibilitychange', this.boundVisibilityHandler);
     }
   }
 
@@ -35,22 +58,31 @@ export class WebSocketClient {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
+        console.log('[WS] Connection established');
         this.reconnectAttempts = 0;
+        this.lastPongReceived = Date.now();
+        this.lastPingSent = 0;
         this.notifyStatus(true);
         this.flushPendingQueue();
         this.startHeartbeat();
       };
 
       this.ws.onmessage = (event: MessageEvent) => {
+        this.lastPongReceived = Date.now();
         try {
           const parsed = JSON.parse(event.data) as ServerMessage;
+          if (parsed.type === 'pong') {
+            // Heartbeat pong acknowledged
+            return;
+          }
           this.notifyMessage(parsed);
         } catch (e) {
           console.warn('[WS] Failed to parse incoming message:', event.data, e);
         }
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (event: CloseEvent) => {
+        console.warn(`[WS] Connection closed (code: ${event.code}, reason: ${event.reason || 'none'})`);
         this.cleanup();
         this.notifyStatus(false);
         if (!this.isExplicitlyClosed) {
@@ -121,25 +153,59 @@ export class WebSocketClient {
     return !!this.ws && this.ws.readyState === WebSocket.OPEN;
   }
 
+  public reconnectImmediately(): void {
+    if (this.isExplicitlyClosed) return;
+
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch (e) {
+        // ignore
+      }
+      this.ws = null;
+    }
+
+    this.reconnectAttempts = 0;
+    this.connect();
+  }
+
   public disconnect(): void {
     this.isExplicitlyClosed = true;
     this.pendingQueue = [];
     this.cleanup();
     if (this.ws) {
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch (e) {
+        // ignore
+      }
       this.ws = null;
+    }
+  }
+
+  public destroy(): void {
+    this.disconnect();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.boundOnlineHandler);
+      document.removeEventListener('visibilitychange', this.boundVisibilityHandler);
     }
   }
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer !== null || this.isExplicitlyClosed) return;
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.warn('[WS] Max reconnect attempts reached');
-      return;
-    }
 
     this.reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(1.5, this.reconnectAttempts), 10000);
+    // Exponential backoff with random jitter, capped at ~8 seconds
+    const backoff = Math.min(1000 * Math.pow(1.3, this.reconnectAttempts), 8000);
+    const jitter = Math.floor(Math.random() * 800);
+    const delay = backoff + jitter;
+
+    console.log(`[WS] Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${this.reconnectAttempts})...`);
 
     this.reconnectTimer = window.setTimeout(() => {
       this.reconnectTimer = null;
@@ -149,11 +215,21 @@ export class WebSocketClient {
 
   private startHeartbeat(): void {
     if (this.pingInterval !== null) clearInterval(this.pingInterval);
+    // Send application-level ping every 15 seconds
     this.pingInterval = window.setInterval(() => {
       if (this.isConnected()) {
+        const timeSincePong = Date.now() - this.lastPongReceived;
+        // If we haven't received any message/pong for > 35 seconds, socket is dead (zombie TCP)
+        if (this.lastPingSent > 0 && timeSincePong > 35000) {
+          console.warn(`[WS] Missed heartbeats (last pong ${Math.round(timeSincePong / 1000)}s ago). Reconnecting socket.`);
+          this.reconnectImmediately();
+          return;
+        }
+
         this.sendImmediate({ type: 'ping' });
+        this.lastPingSent = Date.now();
       }
-    }, 20000);
+    }, 15000);
   }
 
   private cleanup(): void {

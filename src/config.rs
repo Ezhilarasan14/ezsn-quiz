@@ -28,17 +28,17 @@ impl Config {
         let room_abandoned_timeout_secs = env::var("ROOM_ABANDONED_TIMEOUT_SECS")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(900);
+            .unwrap_or(1800);
 
         let max_room_lifetime_secs = env::var("MAX_ROOM_LIFETIME_SECS")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(7200);
+            .unwrap_or(18000);
 
         let quiz_question_time_seconds = env::var("QUIZ_QUESTION_TIME_SECONDS")
             .ok()
             .and_then(|v| v.trim().parse::<u64>().ok())
-            .unwrap_or(5);
+            .unwrap_or(60);
 
         Self {
             host,

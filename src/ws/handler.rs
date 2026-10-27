@@ -23,11 +23,19 @@ pub async fn ws_route(
         let mut current_room: Option<Arc<RwLock<GameRoom>>> = None;
         let mut is_host = false;
         let mut player_id: Option<String> = None;
-        let mut heartbeat = tokio::time::interval(Duration::from_secs(20));
+        let conn_id = uuid::Uuid::new_v4().to_string();
+        let mut heartbeat = tokio::time::interval(Duration::from_secs(15));
+        let mut last_client_msg = std::time::Instant::now();
 
         loop {
             tokio::select! {
                 _ = heartbeat.tick() => {
+                    // Check if client has gone completely silent (no frames/pongs for 60s)
+                    if last_client_msg.elapsed() > Duration::from_secs(60) {
+                        log::warn!("WebSocket client timed out (no message/pong for 60s). Closing connection {}", conn_id);
+                        break;
+                    }
+
                     if session.ping(b"heartbeat").await.is_err() { break; }
                 }
                 Some(srv_msg) = rx.recv() => {
@@ -41,18 +49,20 @@ pub async fn ws_route(
                         _ => break,
                     };
 
+                    last_client_msg = std::time::Instant::now();
+
                     match msg {
                         actix_ws::Message::Text(text) => {
                             let client_msg: Result<ClientMessage, _> = serde_json::from_str(&text);
                             match client_msg {
                                 Ok(ClientMessage::HostConnect { pin, token }) => {
-                                    if let Some(room) = handle_host_connect(&manager, &pin, &token, tx.clone()).await {
+                                    if let Some(room) = handle_host_connect(&manager, &pin, &token, tx.clone(), Some(conn_id.clone())).await {
                                         is_host = true;
                                         current_room = Some(room);
                                     }
                                 }
                                 Ok(ClientMessage::PlayerConnect { pin, nickname, player_id: pid_opt, email }) => {
-                                    if let Some((room, pid)) = handle_player_connect(&manager, &pin, &nickname, pid_opt, email, tx.clone()).await {
+                                    if let Some((room, pid)) = handle_player_connect(&manager, &pin, &nickname, pid_opt, email, tx.clone(), Some(conn_id.clone())).await {
                                         is_host = false;
                                         player_id = Some(pid);
                                         current_room = Some(room);
@@ -91,6 +101,15 @@ pub async fn ws_route(
                                 }
                                 Ok(ClientMessage::Ping) => {
                                     let _ = tx.send(ServerMessage::Pong);
+                                    if let Some(ref room_arc) = current_room {
+                                        let mut r = room_arc.write().await;
+                                        r.touch();
+                                        if let Some(ref pid) = player_id {
+                                            if let Some(p) = r.players.get_mut(pid) {
+                                                p.last_seen = std::time::Instant::now();
+                                            }
+                                        }
+                                    }
                                 }
                                 Err(err) => {
                                     log::warn!("Invalid client message payload: {}", err);
@@ -99,6 +118,12 @@ pub async fn ws_route(
                         }
                         actix_ws::Message::Ping(bytes) => {
                             if session.pong(&bytes).await.is_err() { break; }
+                        }
+                        actix_ws::Message::Pong(_) => {
+                            if let Some(ref room_arc) = current_room {
+                                let mut r = room_arc.write().await;
+                                r.touch();
+                            }
                         }
                         actix_ws::Message::Close(reason) => {
                             let _ = session.close(reason).await;
@@ -110,15 +135,15 @@ pub async fn ws_route(
             }
         }
 
-        // Cleanup on disconnect
+        // Cleanup on disconnect: only disconnect if this connection is still active for this role/player
         if let Some(room_arc) = current_room {
             let mut room = room_arc.write().await;
             if is_host {
-                room.disconnect_host();
-                log::info!("Host disconnected from room {}", room.pin);
+                room.disconnect_host_conn(Some(&conn_id));
+                log::info!("Host disconnected from room {} (conn: {})", room.pin, conn_id);
             } else if let Some(ref pid) = player_id {
-                room.disconnect_player(pid);
-                log::info!("Player {} disconnected from room {}", pid, room.pin);
+                room.disconnect_player_conn(pid, Some(&conn_id));
+                log::info!("Player {} disconnected from room {} (conn: {})", pid, room.pin, conn_id);
             }
         }
     });

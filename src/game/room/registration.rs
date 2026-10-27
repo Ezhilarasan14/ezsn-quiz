@@ -7,8 +7,13 @@ use uuid::Uuid;
 
 impl GameRoom {
     pub fn register_host(&mut self, tx: mpsc::UnboundedSender<ServerMessage>) {
+        self.register_host_with_conn(tx, None);
+    }
+
+    pub fn register_host_with_conn(&mut self, tx: mpsc::UnboundedSender<ServerMessage>, conn_id: Option<String>) {
         self.last_activity = Instant::now();
         self.host_tx = Some(tx.clone());
+        self.host_connection_id = conn_id;
 
         let _ = tx.send(ServerMessage::Connected {
             role: "host".to_string(),
@@ -32,6 +37,17 @@ impl GameRoom {
         email: Option<String>,
         tx: mpsc::UnboundedSender<ServerMessage>,
     ) -> Result<String, String> {
+        self.register_player_with_conn(player_id_opt, nickname, email, tx, None)
+    }
+
+    pub fn register_player_with_conn(
+        &mut self,
+        player_id_opt: Option<String>,
+        nickname: String,
+        email: Option<String>,
+        tx: mpsc::UnboundedSender<ServerMessage>,
+        conn_id: Option<String>,
+    ) -> Result<String, String> {
         self.last_activity = Instant::now();
         let clean_email = email.map(|e| e.trim().to_lowercase()).filter(|e| !e.is_empty());
 
@@ -40,6 +56,7 @@ impl GameRoom {
             if let Some(player) = self.players.get_mut(&pid) {
                 player.is_connected = true;
                 player.tx = Some(tx.clone());
+                player.connection_id = conn_id.clone();
                 player.last_seen = Instant::now();
                 if clean_email.is_some() && player.email.is_none() {
                     player.email = clean_email.clone();
@@ -70,6 +87,7 @@ impl GameRoom {
                 if player.email.as_ref() == Some(em) {
                     player.is_connected = true;
                     player.tx = Some(tx.clone());
+                    player.connection_id = conn_id.clone();
                     player.last_seen = Instant::now();
                     player.nickname = nickname.trim().to_string();
 
@@ -132,6 +150,7 @@ impl GameRoom {
             is_connected: true,
             last_seen: Instant::now(),
             tx: Some(tx.clone()),
+            connection_id: conn_id,
         };
 
         self.players.insert(new_id.clone(), session);
@@ -163,14 +182,39 @@ impl GameRoom {
     }
 
     pub fn disconnect_host(&mut self) {
+        self.disconnect_host_conn(None);
+    }
+
+    pub fn disconnect_host_conn(&mut self, conn_id_opt: Option<&str>) {
+        if let Some(conn_id) = conn_id_opt {
+            if self.host_connection_id.as_deref() != Some(conn_id) {
+                // A newer connection is already active for this host; do not overwrite it
+                return;
+            }
+        }
         self.host_tx = None;
+        self.host_connection_id = None;
         self.last_activity = Instant::now();
     }
 
     pub fn disconnect_player(&mut self, player_id: &str) {
+        self.disconnect_player_conn(player_id, None);
+    }
+
+    pub fn disconnect_player_conn(&mut self, player_id: &str, conn_id_opt: Option<&str>) {
+        if let Some(conn_id) = conn_id_opt {
+            if let Some(player) = self.players.get(player_id) {
+                if player.connection_id.as_deref() != Some(conn_id) {
+                    // A newer connection is already active for this player; do not overwrite it
+                    return;
+                }
+            }
+        }
+
         let nickname_opt = if let Some(player) = self.players.get_mut(player_id) {
             player.is_connected = false;
             player.tx = None;
+            player.connection_id = None;
             player.last_seen = Instant::now();
             Some(player.nickname.clone())
         } else {

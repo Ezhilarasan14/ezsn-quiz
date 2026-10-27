@@ -156,6 +156,8 @@ pub enum ServerMessage {
         time_limit_sec: u64,
         options: Vec<OptionView>,
         already_answered: bool,
+        #[serde(default)]
+        question_id: String,
     },
     AnswerAccepted {
         question_index: usize,

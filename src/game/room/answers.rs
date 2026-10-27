@@ -36,7 +36,28 @@ impl GameRoom {
         }
 
         let question = &room.quiz.questions[q_idx];
-        if !question_id.is_empty() && question.id != question_id {
+
+        // Flexible question_id matching: accept empty, UUID, or 1-based / 0-based question index representations
+        let q_idx_1_based = format!("q_{}", q_idx + 1);
+        let q_idx_0_based = format!("q_{}", q_idx);
+        let num_1_based = (q_idx + 1).to_string();
+        let num_0_based = q_idx.to_string();
+
+        let is_valid_qid = question_id.is_empty()
+            || question.id == question_id
+            || question_id == q_idx_1_based
+            || question_id == q_idx_0_based
+            || question_id == num_1_based
+            || question_id == num_0_based;
+
+        if !is_valid_qid {
+            log::warn!(
+                "Answer rejected for player {}: question_id '{}' did not match active question id '{}' or index '{}'",
+                player_id,
+                question_id,
+                question.id,
+                q_idx + 1
+            );
             return Err("Answer submitted for incorrect question.".to_string());
         }
 
@@ -45,10 +66,44 @@ impl GameRoom {
         if elapsed_ms > total_duration_ms {
             return Err("Time is up! Answers are locked for this question.".to_string());
         }
+        let clamped_elapsed_ms = elapsed_ms.min(total_duration_ms);
 
         // Validate option & check correctness
-        let selected_option = question.options.iter().find(|o| o.id == option_id);
-        let is_correct = selected_option.map(|o| o.is_correct).unwrap_or(false);
+        // Match by exact option ID (UUID), option text, or 0/1-based index fallback
+        let selected_option = question
+            .options
+            .iter()
+            .find(|o| o.id == option_id || o.option_text.trim().eq_ignore_ascii_case(option_id.trim()))
+            .or_else(|| {
+                let idx_opt = option_id
+                    .strip_prefix("opt_")
+                    .or_else(|| option_id.strip_prefix("opt-"))
+                    .unwrap_or(option_id)
+                    .parse::<usize>()
+                    .ok();
+                idx_opt.and_then(|idx| {
+                    if idx < question.options.len() {
+                        Some(&question.options[idx])
+                    } else if idx > 0 && (idx - 1) < question.options.len() {
+                        Some(&question.options[idx - 1])
+                    } else {
+                        None
+                    }
+                })
+            });
+
+        let Some(option) = selected_option else {
+            log::warn!(
+                "Selected option '{}' not found in question '{}'. Options: {:?}",
+                option_id,
+                question.id,
+                question.options.iter().map(|o| (&o.id, &o.option_text)).collect::<Vec<_>>()
+            );
+            return Err("Invalid option selected for this question.".to_string());
+        };
+
+        let canonical_option_id = option.id.clone();
+        let is_correct = option.is_correct;
 
         let current_streak = room
             .players
@@ -59,7 +114,7 @@ impl GameRoom {
         let (points_awarded, new_streak) = ScoreCalculator::calculate(
             is_correct,
             question.points,
-            elapsed_ms,
+            clamped_elapsed_ms,
             total_duration_ms,
             current_streak,
         );
@@ -69,7 +124,7 @@ impl GameRoom {
             player.score += points_awarded;
             player.streak = new_streak;
             player.total_answered += 1;
-            player.total_time_ms += elapsed_ms;
+            player.total_time_ms += clamped_elapsed_ms;
             if is_correct {
                 player.correct_count += 1;
             }
@@ -77,15 +132,15 @@ impl GameRoom {
             if let Some(ref tx) = player.tx {
                 let _ = tx.send(ServerMessage::AnswerAccepted {
                     question_index: q_idx + 1,
-                    response_time_ms: elapsed_ms,
+                    response_time_ms: clamped_elapsed_ms,
                 });
             }
         }
 
         // Store answer in room state
         let player_answer = PlayerAnswer {
-            option_id: option_id.to_string(),
-            response_time_ms: elapsed_ms,
+            option_id: canonical_option_id,
+            response_time_ms: clamped_elapsed_ms,
             is_correct,
             points_awarded,
             submitted_at: Instant::now(),

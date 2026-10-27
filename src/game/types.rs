@@ -121,6 +121,7 @@ pub struct PlayerSession {
     pub is_connected: bool,
     pub last_seen: Instant,
     pub tx: Option<mpsc::UnboundedSender<ServerMessage>>,
+    pub connection_id: Option<String>,
 }
 
 pub enum RoomState {

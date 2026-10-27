@@ -34,6 +34,22 @@ onMounted(() => {
     pin.value = qPin.trim().replace(/\D/g, '');
   }
 
+  // Check saved session in sessionStorage for seamless recovery after reload/tab restore
+  try {
+    const savedStr = sessionStorage.getItem('ezsn_session');
+    if (savedStr) {
+      const saved = JSON.parse(savedStr);
+      if (saved.role === 'player' && (!pin.value || saved.pin === pin.value) && saved.nickname) {
+        pin.value = saved.pin;
+        playerNickname.value = saved.nickname;
+        gameStore.joinAsPlayer(saved.pin, saved.nickname, saved.playerEmail, saved.playerId);
+        return;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   // If already logged in via query params, auto-join immediately!
   if (pin.value && queryNick.value) {
     gameStore.joinAsPlayer(pin.value, queryNick.value);

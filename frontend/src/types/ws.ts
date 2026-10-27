@@ -99,6 +99,7 @@ export type ServerMessage =
         time_limit_sec: number;
         options: OptionView[];
         already_answered: boolean;
+        question_id?: string;
       };
     }
   | {

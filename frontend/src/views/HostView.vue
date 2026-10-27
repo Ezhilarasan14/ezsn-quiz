@@ -12,8 +12,23 @@ const router = useRouter();
 const gameStore = useGameStore();
 
 onMounted(() => {
-  const pin = (route.query.pin as string) || '';
-  const token = (route.query.token as string) || '';
+  let pin = (route.query.pin as string) || '';
+  let token = (route.query.token as string) || '';
+
+  if (!pin || !token) {
+    try {
+      const savedStr = sessionStorage.getItem('ezsn_session');
+      if (savedStr) {
+        const saved = JSON.parse(savedStr);
+        if (saved.role === 'host' && saved.pin && saved.hostToken) {
+          pin = saved.pin;
+          token = saved.hostToken;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   if (!pin || !token) {
     router.replace('/admin');

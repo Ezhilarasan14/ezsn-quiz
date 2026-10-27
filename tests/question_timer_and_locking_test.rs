@@ -46,7 +46,7 @@ async fn test_configured_question_answer_time_and_lock() {
             questions: vec![
                 CreateQuestionRequest {
                     question_text: "What is 5 x 5?".to_string(),
-                    time_limit_sec: Some(20), // configured time (5s) will be applied
+                    time_limit_sec: Some(5), // Question's own configured time (5s) is preserved
                     points: Some(1000),
                     options: vec![
                         CreateOptionRequest { option_text: "25".to_string(), is_correct: true },
@@ -55,7 +55,7 @@ async fn test_configured_question_answer_time_and_lock() {
                 },
                 CreateQuestionRequest {
                     question_text: "What is 3 + 2?".to_string(),
-                    time_limit_sec: Some(20),
+                    time_limit_sec: Some(5),
                     points: Some(1000),
                     options: vec![
                         CreateOptionRequest { option_text: "5".to_string(), is_correct: true },

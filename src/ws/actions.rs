@@ -10,11 +10,12 @@ pub async fn handle_host_connect(
     pin: &str,
     token: &str,
     tx: mpsc::UnboundedSender<ServerMessage>,
+    conn_id: Option<String>,
 ) -> Option<Arc<RwLock<GameRoom>>> {
     if let Some(room_arc) = manager.get_room(pin).await {
         let mut room = room_arc.write().await;
         if room.host_token == token {
-            room.register_host(tx);
+            room.register_host_with_conn(tx, conn_id);
             drop(room);
             Some(room_arc)
         } else {
@@ -38,10 +39,11 @@ pub async fn handle_player_connect(
     pid_opt: Option<String>,
     email: Option<String>,
     tx: mpsc::UnboundedSender<ServerMessage>,
+    conn_id: Option<String>,
 ) -> Option<(Arc<RwLock<GameRoom>>, String)> {
     if let Some(room_arc) = manager.get_room(pin).await {
         let mut room = room_arc.write().await;
-        match room.register_player(pid_opt, nickname.to_string(), email, tx.clone()) {
+        match room.register_player_with_conn(pid_opt, nickname.to_string(), email, tx.clone(), conn_id) {
             Ok(pid) => {
                 drop(room);
                 Some((room_arc, pid))

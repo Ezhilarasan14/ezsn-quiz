@@ -12,19 +12,32 @@ pub struct RoomManager {
     pub rooms: Arc<RwLock<HashMap<String, Arc<RwLock<GameRoom>>>>>,
     pub db_pool: DbPool,
     pub question_time_secs: u64,
+    pub room_abandoned_timeout_secs: u64,
+    pub max_room_lifetime_secs: u64,
 }
 
 impl RoomManager {
     pub fn new(db_pool: DbPool) -> Self {
         let config = crate::config::Config::from_env();
-        Self::with_question_time(db_pool, config.quiz_question_time_seconds)
+        Self::from_config(db_pool, &config)
     }
 
     pub fn with_question_time(db_pool: DbPool, question_time_secs: u64) -> Self {
+        let config = crate::config::Config::from_env();
+        let mut manager = Self::from_config(db_pool, &config);
+        if question_time_secs > 0 {
+            manager.question_time_secs = question_time_secs;
+        }
+        manager
+    }
+
+    pub fn from_config(db_pool: DbPool, config: &crate::config::Config) -> Self {
         let manager = Self {
             rooms: Arc::new(RwLock::new(HashMap::new())),
             db_pool,
-            question_time_secs: if question_time_secs == 0 { 5 } else { question_time_secs },
+            question_time_secs: if config.quiz_question_time_seconds == 0 { 20 } else { config.quiz_question_time_seconds },
+            room_abandoned_timeout_secs: if config.room_abandoned_timeout_secs == 0 { 1800 } else { config.room_abandoned_timeout_secs },
+            max_room_lifetime_secs: if config.max_room_lifetime_secs == 0 { 18000 } else { config.max_room_lifetime_secs },
         };
 
         // Start background cleaner task
@@ -58,7 +71,13 @@ impl RoomManager {
 
         let mut quiz_configured = quiz;
         for q in &mut quiz_configured.questions {
-            q.time_limit_sec = self.question_time_secs as i64;
+            if q.time_limit_sec <= 0 {
+                q.time_limit_sec = if self.question_time_secs > 0 {
+                    self.question_time_secs as i64
+                } else {
+                    20
+                };
+            }
         }
 
         let room = GameRoom::new(
@@ -69,6 +88,8 @@ impl RoomManager {
             organization,
             self.db_pool.clone(),
             self.question_time_secs,
+            self.room_abandoned_timeout_secs,
+            self.max_room_lifetime_secs,
         );
         let room_arc = Arc::new(RwLock::new(room));
         rooms.insert(pin.clone(), room_arc);

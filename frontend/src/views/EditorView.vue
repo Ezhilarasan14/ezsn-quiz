@@ -227,10 +227,18 @@ async function handleSave() {
 
           <div class="flex items-center space-x-3">
             <select v-model.number="q.time_limit_secs" class="glass-input text-xs font-bold text-purple-200 rounded-xl px-3 py-1.5 cursor-pointer">
+              <option :value="5">⏱️ 5 seconds</option>
               <option :value="10">⏱️ 10 seconds</option>
+              <option :value="15">⏱️ 15 seconds</option>
               <option :value="20">⏱️ 20 seconds</option>
               <option :value="30">⏱️ 30 seconds</option>
+              <option :value="45">⏱️ 45 seconds</option>
               <option :value="60">⏱️ 60 seconds</option>
+              <option :value="90">⏱️ 90 seconds</option>
+              <option :value="120">⏱️ 120 seconds</option>
+              <option v-if="![5, 10, 15, 20, 30, 45, 60, 90, 120].includes(q.time_limit_secs)" :value="q.time_limit_secs">
+                ⏱️ {{ q.time_limit_secs }} seconds
+              </option>
             </select>
 
             <Button

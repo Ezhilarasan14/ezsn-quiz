@@ -32,6 +32,7 @@ export const useGameStore = defineStore('game', () => {
   // Question State
   const questionIndex = ref<number>(0);
   const totalQuestions = ref<number>(0);
+  const currentQuestionId = ref<string>('');
   const questionText = ref<string>('');
   const timeLimitSecs = ref<number>(20);
   const timeLeftSecs = ref<number>(20);
@@ -61,11 +62,21 @@ export const useGameStore = defineStore('game', () => {
 
   // Initialize WebSocket handlers
   let wasConnected = false;
+  let isWsInitialized = false;
   function initWebSocket() {
+    if (isWsInitialized) {
+      if (!wsClient.isConnected()) {
+        wsClient.connect();
+      }
+      return;
+    }
+    isWsInitialized = true;
+
     wsClient.onStatus((connected) => {
       isConnected.value = connected;
       if (connected && wasConnected) {
         // Automatic re-handshake on reconnection
+        console.log('[GameStore] Reconnected, resending handshake to recover session...');
         if (role.value === 'player' && roomPin.value && nickname.value) {
           wsClient.send({
             type: 'player_connect',
@@ -102,6 +113,20 @@ export const useGameStore = defineStore('game', () => {
         roomPin.value = msg.payload.pin;
         if (msg.payload.player_id) playerId.value = msg.payload.player_id;
         if (msg.payload.nickname) nickname.value = msg.payload.nickname;
+
+        // Persist session to sessionStorage for seamless reload/crash recovery
+        try {
+          sessionStorage.setItem('ezsn_session', JSON.stringify({
+            pin: msg.payload.pin,
+            role: msg.payload.role,
+            playerId: msg.payload.player_id || playerId.value,
+            nickname: msg.payload.nickname || nickname.value,
+            hostToken: hostToken.value,
+            playerEmail: playerEmail.value,
+          }));
+        } catch (e) {
+          console.warn('[GameStore] Could not persist session to sessionStorage', e);
+        }
         break;
 
       case 'theme_config':
@@ -149,6 +174,8 @@ export const useGameStore = defineStore('game', () => {
         selectedOptionId.value = null;
         answerSubmitted.value = false;
         answerAccepted.value = false;
+        lastAnswerCorrect.value = null;
+        lastPointsAwarded.value = 0;
         currentQuestionResponseTimeMs.value = null;
         questionStartTimeMs = Date.now();
         correctOptionIds.value = [];
@@ -159,10 +186,19 @@ export const useGameStore = defineStore('game', () => {
         gameState.value = 'QUESTION';
         questionIndex.value = msg.payload.question_index;
         totalQuestions.value = msg.payload.total_questions;
+        currentQuestionId.value = msg.payload.question_id || '';
         questionText.value = msg.payload.question_text;
         timeLimitSecs.value = msg.payload.time_limit_sec;
         options.value = msg.payload.options;
         questionStartTimeMs = Date.now();
+        if (msg.payload.already_answered) {
+          answerSubmitted.value = true;
+          answerAccepted.value = true;
+        } else {
+          answerSubmitted.value = false;
+          answerAccepted.value = false;
+          selectedOptionId.value = null;
+        }
         startCountdown(msg.payload.time_limit_sec);
         break;
 
@@ -171,6 +207,13 @@ export const useGameStore = defineStore('game', () => {
         if (msg.payload.response_time_ms !== undefined) {
           currentQuestionResponseTimeMs.value = msg.payload.response_time_ms;
         }
+        break;
+
+      case 'answer_rejected':
+        console.error('[GameStore] Answer rejected by server:', msg.payload.reason);
+        answerSubmitted.value = false;
+        answerAccepted.value = false;
+        selectedOptionId.value = null;
         break;
 
       case 'host_answer_count_update':
@@ -238,11 +281,14 @@ export const useGameStore = defineStore('game', () => {
   }
 
   // Client Actions
-  function joinAsPlayer(pin: string, name: string, email?: string) {
+  function joinAsPlayer(pin: string, name: string, email?: string, overridePlayerId?: string) {
     roomPin.value = pin;
     nickname.value = name;
     role.value = 'player';
     hostToken.value = '';
+    if (overridePlayerId) {
+      playerId.value = overridePlayerId;
+    }
     if (email) {
       playerEmail.value = email.trim();
       localStorage.setItem('ezsn_player_email', email.trim());
@@ -277,7 +323,10 @@ export const useGameStore = defineStore('game', () => {
     currentQuestionResponseTimeMs.value = Math.max(100, Date.now() - questionStartTimeMs);
     wsClient.send({
       type: 'player_submit_answer',
-      payload: { question_id: `q_${questionIndex.value}`, option_id: optionId },
+      payload: {
+        question_id: currentQuestionId.value || `q_${questionIndex.value}`,
+        option_id: optionId,
+      },
     });
   }
 
@@ -299,6 +348,11 @@ export const useGameStore = defineStore('game', () => {
   function disconnect() {
     stopCountdown();
     wsClient.disconnect();
+    try {
+      sessionStorage.removeItem('ezsn_session');
+    } catch (e) {
+      // ignore
+    }
     gameState.value = 'LOBBY';
     selectedOptionId.value = null;
     answerSubmitted.value = false;

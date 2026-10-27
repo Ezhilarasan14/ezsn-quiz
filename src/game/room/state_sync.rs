@@ -60,6 +60,7 @@ impl GameRoom {
                     time_limit_sec: remaining,
                     options: options_view,
                     already_answered: false,
+                    question_id: q.id.clone(),
                 });
 
                 let _ = tx.send(ServerMessage::HostAnswerCountUpdate {
@@ -163,6 +164,7 @@ impl GameRoom {
                     time_limit_sec: remaining,
                     options: options_view,
                     already_answered,
+                    question_id: q.id.clone(),
                 });
             }
             RoomState::QuestionResult {
